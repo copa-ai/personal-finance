@@ -8,7 +8,7 @@ ENUMs
 
 ```sql
 CREATE TYPE estado_gasto_enum      AS ENUM ('PAGADO', 'PENDIENTE', 'REEMBOLSADO', 'BLOQUEADO');
-CREATE TYPE tipo_subgasto_enum     AS ENUM ('FIJO', 'VARIABLE_MENSUAL', 'VARIABLE_IRREGULAR');
+CREATE TYPE tipo_subgasto_enum     AS ENUM ('FIJO', 'VARIABLE_REGULAR', 'VARIABLE_IRREGULAR');
 CREATE TYPE recurrencia_enum       AS ENUM ('NINGUNA', 'MENSUAL', 'TRIMESTRAL', 'ANUAL');
 CREATE TYPE tipo_movimiento_enum   AS ENUM ('COMPRA', 'CONSUMO', 'AJUSTE', 'PERDIDA');
 ```
