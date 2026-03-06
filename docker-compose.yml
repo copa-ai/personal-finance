@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: personal_finance_db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: personal_finance
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
