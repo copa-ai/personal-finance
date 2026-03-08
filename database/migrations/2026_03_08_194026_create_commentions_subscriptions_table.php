@@ -10,12 +10,14 @@ return new class extends Migration
     {
         Schema::create(config('commentions.tables.comment_subscriptions', 'comment_subscriptions'), function (Blueprint $table) {
             $table->id();
-            $table->morphs('subscribable');
+            $table->string('subscribable_type');
+            $table->string('subscribable_id', 36);
+            $table->index(['subscribable_type', 'subscribable_id']);
             $table->morphs('subscriber');
             $table->timestamps();
 
             $table->unique([
-                'subscribable_type', 'subscribable_id', 'subscriber_type', 'subscriber_id'
+                'subscribable_type', 'subscribable_id', 'subscriber_type', 'subscriber_id',
             ], 'commentions_subscriptions_unique');
         });
     }
@@ -25,5 +27,3 @@ return new class extends Migration
         Schema::dropIfExists(config('commentions.tables.comment_subscriptions', 'comment_subscriptions'));
     }
 };
-
-

@@ -11,7 +11,9 @@ return new class extends Migration
         Schema::create(config('commentions.tables.comments', 'comments'), function (Blueprint $table) {
             $table->id();
             $table->morphs('author');
-            $table->morphs('commentable');
+            $table->string('commentable_type');
+            $table->string('commentable_id', 36);
+            $table->index(['commentable_type', 'commentable_id']);
             $table->text('body');
             $table->timestamps();
         });
