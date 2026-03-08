@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProductCategories;
 use App\Filament\Resources\ProductCategories\Pages\CreateProductCategory;
 use App\Filament\Resources\ProductCategories\Pages\EditProductCategory;
 use App\Filament\Resources\ProductCategories\Pages\ListProductCategories;
+use App\Filament\Resources\ProductCategories\RelationManagers\ProductsRelationManager;
 use App\Filament\Resources\ProductCategories\Schemas\ProductCategoryForm;
 use App\Filament\Resources\ProductCategories\Tables\ProductCategoriesTable;
 use App\Models\ProductCategory;
@@ -19,8 +20,8 @@ class ProductCategoryResource extends Resource
     protected static ?string $model = ProductCategory::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-tag';
-    protected static ?string $modelLabel = 'Categoría';
-    protected static ?string $pluralModelLabel = 'Categorías';
+    protected static ?string $modelLabel = 'Necesidad';
+    protected static ?string $pluralModelLabel = 'Necesidades';
     protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
 
     public static function form(Schema $schema): Schema
@@ -36,7 +37,7 @@ class ProductCategoryResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ProductsRelationManager::class,
         ];
     }
 

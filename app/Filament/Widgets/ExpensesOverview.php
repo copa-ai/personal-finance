@@ -21,7 +21,7 @@ class ExpensesOverview extends StatsOverviewWidget
                 ->description('Productos registrados')
                 ->descriptionIcon('heroicon-m-shopping-bag')
                 ->color('info'),
-            Stat::make('Categorías', ProductCategory::count())
+            Stat::make('Necesidades', ProductCategory::count())
                 ->description('Clasificaciones activas')
                 ->descriptionIcon('heroicon-m-tag')
                 ->color('primary'),

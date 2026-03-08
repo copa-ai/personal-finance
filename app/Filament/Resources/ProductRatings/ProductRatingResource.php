@@ -22,6 +22,7 @@ class ProductRatingResource extends Resource
     protected static ?string $modelLabel = 'Valoración';
     protected static ?string $pluralModelLabel = 'Valoraciones';
     protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

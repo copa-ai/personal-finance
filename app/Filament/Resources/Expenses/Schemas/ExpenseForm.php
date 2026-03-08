@@ -11,36 +11,41 @@ use Filament\Schemas\Schema;
 
 class ExpenseForm
 {
+    public static function components(): array
+    {
+        return [
+            Section::make('Detalles del Gasto')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('establishment')
+                        ->label('Establecimiento')
+                        ->required(),
+                    DateTimePicker::make('date')
+                        ->label('Fecha y Hora')
+                        ->default(now())
+                        ->required(),
+                    TextInput::make('total')
+                        ->label('Total (€)')
+                        ->required()
+                        ->numeric()
+                        ->prefix('€'),
+                    Select::make('status')
+                        ->label('Estado')
+                        ->options(ExpenseStatus::class)
+                        ->default('PAID')
+                        ->required(),
+                    \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
+                        ->label('Foto del Ticket')
+                        ->image()
+                        ->directory('tickets')
+                        ->columnSpanFull(),
+                ]),
+        ];
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
-                Section::make('Detalles del Gasto')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('establishment')
-                            ->label('Establecimiento')
-                            ->required(),
-                        DateTimePicker::make('date')
-                            ->label('Fecha y Hora')
-                            ->default(now())
-                            ->required(),
-                        TextInput::make('total')
-                            ->label('Total (€)')
-                            ->required()
-                            ->numeric()
-                            ->prefix('€'),
-                        Select::make('status')
-                            ->label('Estado')
-                            ->options(ExpenseStatus::class)
-                            ->default('PAID')
-                            ->required(),
-                        \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
-                            ->label('Foto del Ticket')
-                            ->image()
-                            ->directory('tickets')
-                            ->columnSpanFull(),
-                    ])
-            ]);
+            ->components(self::components());
     }
 }

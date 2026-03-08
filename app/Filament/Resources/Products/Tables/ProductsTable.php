@@ -51,7 +51,7 @@ class ProductsTable
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('category_id')
                     ->relationship('category', 'name')
-                    ->label('Categoría'),
+                    ->label('Necesidad'),
                 \Filament\Tables\Filters\TernaryFilter::make('is_consumable')
                     ->label('¿Es Consumible?'),
                 \Filament\Tables\Filters\TernaryFilter::make('active')

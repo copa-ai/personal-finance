@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\ExpenseItems\Tables;
+namespace App\Filament\Resources\Expenses\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -17,8 +16,6 @@ class ExpenseItemsTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID'),
-                TextColumn::make('expense.id')
-                    ->searchable(),
                 TextColumn::make('product.name')
                     ->searchable(),
                 TextColumn::make('concept')
@@ -55,9 +52,6 @@ class ExpenseItemsTable
                 \Filament\Tables\Filters\SelectFilter::make('recurrence')
                     ->options(\App\Enums\Recurrence::class)
                     ->label('Recurrencia'),
-            ])
-            ->recordActions([
-                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
