@@ -6,9 +6,12 @@ use App\Enums\ExpenseStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Kirschbaum\Commentions\Contracts\Commentable;
+use Kirschbaum\Commentions\HasComments;
 
-class Expense extends Model
+class Expense extends Model implements Commentable
 {
+    use HasComments;
     use HasUuids;
 
     public $timestamps = false;

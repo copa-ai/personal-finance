@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\ProductRatings\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
 class ProductRatingsTable
 {
@@ -40,7 +44,10 @@ class ProductRatingsTable
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
+                CommentsAction::make()
+                    ->mentionables(fn (Model $record) => User::query()->get()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\Expenses\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
 class ExpenseItemsTable
 {
@@ -68,6 +71,10 @@ class ExpenseItemsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
+            ])
+            ->recordActions([
+                CommentsAction::make()
+                    ->mentionables(fn (Model $record) => User::query()->get()),
             ]);
     }
 }

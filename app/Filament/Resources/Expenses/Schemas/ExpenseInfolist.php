@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\Expenses\Schemas;
 
+use App\Models\User;
 use Filament\Infolists\Components\ImageEntry;
-use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
+use Kirschbaum\Commentions\Filament\Infolists\Components\CommentsEntry;
 
 class ExpenseInfolist
 {
@@ -34,6 +37,11 @@ class ExpenseInfolist
                             ->disk('local')
                             ->visibility('private')
                             ->columnSpanFull(),
+                    ]),
+                Section::make('Comentarios')
+                    ->components([
+                        CommentsEntry::make('comments')
+                            ->mentionables(fn (Model $record) => User::query()->get()),
                     ]),
             ]);
     }

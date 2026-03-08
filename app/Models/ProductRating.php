@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Kirschbaum\Commentions\Contracts\Commentable;
+use Kirschbaum\Commentions\HasComments;
 
-class ProductRating extends Model
+class ProductRating extends Model implements Commentable
 {
+    use HasComments;
     use HasUuids;
 
     public $timestamps = false;
