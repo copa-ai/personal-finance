@@ -33,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->spa()
             ->maxContentWidth(Width::Full)
             ->topNavigation()
-            ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make())
+            ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())
             ->plugin(\Caresome\FilamentNeobrutalism\NeobrutalismeTheme::make())
             ->colors([

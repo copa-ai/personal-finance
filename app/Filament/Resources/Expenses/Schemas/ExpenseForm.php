@@ -26,7 +26,6 @@ class ExpenseForm
                         ->required(),
                     TextInput::make('total')
                         ->label('Total (€)')
-                        ->required()
                         ->numeric()
                         ->prefix('€'),
                     Select::make('status')

@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->uuid('id')->primary();
             $table->string('establishment', 150);
             $table->timestampTz('date');
-            $table->decimal('total', 10, 2);
+            $table->decimal('total', 10, 2)->nullable();
             $table->string('ticket_photo_hash', 255)->nullable();
             $table->timestampTz('created_at')->useCurrent();
         });

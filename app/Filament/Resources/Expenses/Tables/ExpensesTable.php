@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Expenses\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -30,7 +31,9 @@ class ExpensesTable
                     ->sortable(),
                 TextColumn::make('ticket_photo_hash')
                     ->label('Foto del Ticket')
-                    ->searchable(),
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? 'Sí' : 'No')
+                    ->badge()
+                    ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray'),
                 TextColumn::make('created_at')
                     ->label('Creado el')
                     ->dateTime()
@@ -61,8 +64,16 @@ class ExpensesTable
                                 fn(\Illuminate\Database\Eloquent\Builder $query, $date): \Illuminate\Database\Eloquent\Builder => $query->whereDate('date', '<=', $date),
                             );
                     }),
+                \Filament\Tables\Filters\TernaryFilter::make('has_ticket_photo')
+                    ->label('¿Tiene Foto del Ticket?')
+                    ->queries(
+                        true: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->whereNotNull('ticket_photo_hash'),
+                        false: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->whereNull('ticket_photo_hash'),
+                        blank: fn (\Illuminate\Database\Eloquent\Builder $query) => $query,
+                    ),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([
