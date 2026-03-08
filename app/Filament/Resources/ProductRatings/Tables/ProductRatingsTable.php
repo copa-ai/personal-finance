@@ -17,16 +17,21 @@ class ProductRatingsTable
                 TextColumn::make('id')
                     ->label('ID'),
                 TextColumn::make('product.name')
+                    ->label('Producto')
                     ->searchable(),
                 TextColumn::make('quality_rating')
+                    ->label('Calidad')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('value_rating')
+                    ->label('Relación Calidad-Precio')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('expenseItem.id')
+                    ->label('Línea de Gasto')
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label('Creado el')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

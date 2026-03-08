@@ -16,19 +16,28 @@ class ProductRatingForm
         return [
             Select::make('product_id')
                 ->relationship('product', 'name')
+                ->label('Producto')
                 ->createOptionForm(ProductForm::components())
                 ->editOptionForm(ProductForm::components())
                 ->hidden($hideProductField)
                 ->dehydrated(! $hideProductField)
                 ->required(! $hideProductField),
             TextInput::make('quality_rating')
+                ->label('Calidad (1-10)')
+                ->minValue(1)
+                ->maxValue(10)
                 ->numeric(),
             TextInput::make('value_rating')
+                ->label('Relación Calidad-Precio (1-10)')
+                ->minValue(1)
+                ->maxValue(10)
                 ->numeric(),
             Textarea::make('comment')
+                ->label('Comentario')
                 ->columnSpanFull(),
             Select::make('expense_item_id')
                 ->relationship('expenseItem', 'id')
+                ->label('Línea de Gasto')
                 ->createOptionForm(ExpenseItemForm::components(includeExpenseField: true))
                 ->editOptionForm(ExpenseItemForm::components(includeExpenseField: true)),
         ];
