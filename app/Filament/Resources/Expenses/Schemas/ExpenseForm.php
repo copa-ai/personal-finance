@@ -39,7 +39,14 @@ class ExpenseForm
                         ->image()
                         ->directory('tickets')
                         ->columnSpanFull()
-                        ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                        ->acceptedFileTypes([
+                            'image/jpeg',
+                            'image/png',
+                            'image/webp',
+                            'image/heic',
+                            'image/heif',
+                        ])
+                        ->maxSize(20480)
                         ->extraInputAttributes([
                             'accept'  => 'image/*',
                             'capture' => 'environment', // 'user' = cámara frontal, 'environment' = trasera
