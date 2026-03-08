@@ -38,7 +38,13 @@ class ExpenseForm
                         ->label('Foto del Ticket')
                         ->image()
                         ->directory('tickets')
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                        ->extraInputAttributes([
+                            'accept'  => 'image/*',
+                            'capture' => 'environment', // 'user' = cámara frontal, 'environment' = trasera
+                        ])
+                        ->disk('local'),
                 ]),
         ];
     }

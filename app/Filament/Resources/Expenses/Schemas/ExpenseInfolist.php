@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Expenses\Schemas;
 
 use Filament\Infolists\Components\ImageEntry;
-use Filament\Infolists\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
@@ -31,8 +31,8 @@ class ExpenseInfolist
                             ->money('EUR'),
                         ImageEntry::make('ticket_photo_hash')
                             ->label('Foto del Ticket')
-                            ->disk('public')
-                            ->visibility('public')
+                            ->disk('local')
+                            ->visibility('private')
                             ->columnSpanFull(),
                     ]),
             ]);
