@@ -10,6 +10,9 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -17,9 +20,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Filament\Support\Enums\Width;
+use Usamamuneerchaudhary\CommandPalette\FilamentCommandPalettePlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,11 +32,13 @@ class AdminPanelProvider extends PanelProvider
             ->path('')
             ->login()
             ->spa()
+            ->globalSearchKeyBindings(['mod+shift+k'])
             ->maxContentWidth(Width::Full)
             ->topNavigation()
             ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())
             ->plugin(\Caresome\FilamentNeobrutalism\NeobrutalismeTheme::make())
+            ->plugin(FilamentCommandPalettePlugin::make())
             ->colors([
                 'primary' => Color::Green,
             ])
@@ -93,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 ->reorderableColumns()
                 ->deferColumnManager(false)
                 ->striped()
-                ->poll("5s");
+                ->poll('5s');
         });
     }
 }

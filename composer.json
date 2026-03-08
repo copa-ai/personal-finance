@@ -13,7 +13,8 @@
         "hammadzafar05/mobile-bottom-nav": "^1.0",
         "kirschbaum-development/commentions": "^0.7.9",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "usamamuneerchaudhary/filament-command-palette": "^1.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
