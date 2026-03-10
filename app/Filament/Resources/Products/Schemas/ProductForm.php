@@ -8,8 +8,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Icon;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class ProductForm
 {
@@ -33,7 +35,11 @@ class ProductForm
                     TextInput::make('brand')
                         ->label('Marca'),
                     TextInput::make('variant')
-                        ->label('Variante'),
+                        ->label('Variante')
+                        ->afterLabel(Schema::start([
+                            Icon::make(Heroicon::QuestionMarkCircle)
+                                ->tooltip('Especifica la variante del producto, por ejemplo sabor, tamano o modelo.'),
+                        ])),
                     TextInput::make('unit_of_measure')
                         ->label('Unidad de Medida (Ej: kg, L, ud)')
                         ->required(),
@@ -59,6 +65,10 @@ class ProductForm
                         ->numeric(),
                     TextInput::make('target_price')
                         ->label('Precio Objetivo (€)')
+                        ->afterLabel(Schema::start([
+                            Icon::make(Heroicon::QuestionMarkCircle)
+                                ->tooltip('Indica el precio por UD, KG, L...'),
+                        ]))
                         ->numeric()
                         ->prefix('€'),
                     DateTimePicker::make('last_updated_at')
