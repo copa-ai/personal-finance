@@ -31,7 +31,7 @@ return new class extends Migration
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'recurrence_enum') THEN
-                    CREATE TYPE recurrence_enum AS ENUM ('NONE', 'MONTHLY', 'QUARTERLY', 'YEARLY');
+                    CREATE TYPE recurrence_enum AS ENUM ('NONE', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY');
                 END IF;
             END
             $$;

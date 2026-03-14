@@ -158,20 +158,29 @@ class ExpenseItemForm
                 ->schema([
                     Select::make('item_type')
                         ->label('Clasificación')
+                        ->helperText('Indica si este subgasto es fijo o variable. Se usa para clasificar, filtrar e informar.')
                         ->options(ExpenseItemType::class)
                         ->required(),
                     Select::make('recurrence')
                         ->label('Recurrencia')
+                        ->helperText('Cada cuánto se repite este subgasto (si aplica). Se usa para clasificación y filtros.')
                         ->options(Recurrence::class)
                         ->default('NONE')
                         ->required(),
                     Toggle::make('is_consumable')
                         ->label('¿Consumible?')
+                        ->helperText('Actívalo si este subgasto corresponde a unidades que entran en inventario del “Producto Base” (afecta al stock).')
                         ->default(true)
                         ->required(),
-                    DatePicker::make('actual_start_date')->label('Fecha Inicio Real'),
-                    DatePicker::make('projected_start_date')->label('Fecha Inicio Proyectada'),
-                    DatePicker::make('end_date')->label('Fecha Fin'),
+                    DatePicker::make('actual_start_date')
+                        ->label('Fecha Inicio Real')
+                        ->helperText('Fecha en la que empezó realmente (cuando lo empezaste a pagar/usar).'),
+                    DatePicker::make('projected_start_date')
+                        ->label('Fecha Inicio Proyectada')
+                        ->helperText('Fecha estimada de inicio (planificación).'),
+                    DatePicker::make('end_date')
+                        ->label('Fecha Fin')
+                        ->helperText('Fecha en la que termina o deja de aplicarse.'),
                 ]),
         ];
     }
