@@ -68,7 +68,8 @@ class ExpenseInfolist
                 Section::make('Comentarios')
                     ->components([
                         CommentsEntry::make('comments')
-                            ->mentionables(fn (Model $record) => User::query()->get()),
+                            ->mentionables(fn (Model $record) => User::query()->get())
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

@@ -59,7 +59,8 @@ class ProductInfolist
                     Section::make('Comentarios')
                         ->schema([
                             CommentsEntry::make('comments')
-                                ->mentionables(fn (Model $record) => User::query()->get()),
+                                ->mentionables(fn (Model $record) => User::query()->get())
+                                ->columnSpanFull(),
                         ])
                         ->grow(),
                 ])
