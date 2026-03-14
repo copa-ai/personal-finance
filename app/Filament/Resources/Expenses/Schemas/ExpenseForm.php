@@ -6,6 +6,8 @@ use App\Enums\ExpenseStatus;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Get;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -27,12 +29,26 @@ class ExpenseForm
                     TextInput::make('total')
                         ->label('Total (€)')
                         ->numeric()
-                        ->prefix('€'),
+                        ->prefix('€')
+                        ->required(fn (Get $get): bool => (bool) $get('create_single_item')),
                     Select::make('status')
                         ->label('Estado')
                         ->options(ExpenseStatus::class)
                         ->default('PAID')
                         ->required(),
+                    Toggle::make('create_single_item')
+                        ->label('Crear subgasto único por el total')
+                        ->helperText('Crea automáticamente un subgasto con el importe total del gasto.')
+                        ->default(false)
+                        ->dehydrated(false)
+                        ->visible(function ($livewire): bool {
+                            if (method_exists($livewire, 'getFormContext')) {
+                                return $livewire->getFormContext() === 'create';
+                            }
+
+                            return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
+                        })
+                        ->columnSpanFull(),
                     \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
                         ->label('Foto del Ticket')
                         ->image()
