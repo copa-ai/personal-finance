@@ -8,7 +8,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
@@ -50,6 +52,11 @@ class ExpensesTable
                 \Filament\Tables\Filters\SelectFilter::make('status')
                     ->options(\App\Enums\ExpenseStatus::class)
                     ->label('Estado'),
+                Filter::make('pending_subexpenses')
+                    ->label('Subgastos pendientes')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->withPendingSubexpenses())
+                    ->indicator('Subgastos pendientes'),
                 \Filament\Tables\Filters\Filter::make('date')
                     ->label('Fecha')
                     ->form([

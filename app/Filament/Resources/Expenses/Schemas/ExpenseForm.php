@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\Expenses\Schemas;
 
 use App\Enums\ExpenseStatus;
+use App\Models\Expense;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Get;
+use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -16,6 +18,31 @@ class ExpenseForm
     public static function components(): array
     {
         return [
+            Callout::make('Subgastos pendientes')
+                ->warning()
+                ->description(function (?Expense $record): ?string {
+                    if (! $record) {
+                        return null;
+                    }
+
+                    $differenceCents = $record->subexpensesDifferenceCents();
+
+                    if ($differenceCents === null) {
+                        return null;
+                    }
+
+                    $differenceLabel = $differenceCents < 0 ? 'Faltan' : 'Sobran';
+
+                    return sprintf(
+                        'El sumatorio de subgastos (%s) no coincide con el total del gasto (%s). %s %s.',
+                        Expense::formatMoney($record->subexpensesTotal()),
+                        Expense::formatMoney($record->total),
+                        $differenceLabel,
+                        Expense::formatCents(abs($differenceCents)),
+                    );
+                })
+                ->visible(fn (?Expense $record): bool => $record?->hasPendingSubexpenses() ?? false)
+                ->columnSpanFull(),
             Section::make('Detalles del Gasto')
                 ->columns(2)
                 ->schema([
