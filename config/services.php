@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'ollama' => [
+        'url' => env('OLLAMA_URL', 'host.docker.internal:11434'),
+        'ocr_model' => env('OLLAMA_OCR_MODEL', 'glm-ocr'),
+    ],
+
 ];

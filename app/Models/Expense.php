@@ -27,6 +27,7 @@ class Expense extends Model implements Commentable
         'total',
         'status',
         'ticket_photo_hash',
+        'pending_review',
         'created_at',
     ];
 
@@ -35,6 +36,7 @@ class Expense extends Model implements Commentable
         'created_at' => 'datetime',
         'total' => 'decimal:2',
         'status' => ExpenseStatus::class,
+        'pending_review' => 'boolean',
     ];
 
     public function items(): HasMany

@@ -39,6 +39,11 @@ class ExpensesTable
                     ->formatStateUsing(fn (?string $state): string => filled($state) ? 'Sí' : 'No')
                     ->badge()
                     ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray'),
+                TextColumn::make('pending_review')
+                    ->label('Pendiente de Revisar')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
+                    ->badge()
+                    ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
                 TextColumn::make('created_at')
                     ->label('Creado el')
                     ->dateTime()
@@ -57,6 +62,11 @@ class ExpensesTable
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->withPendingSubexpenses())
                     ->indicator('Subgastos pendientes'),
+                Filter::make('pending_review')
+                    ->label('Pendiente de revisar')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('pending_review', true))
+                    ->indicator('Pendiente de revisar'),
                 \Filament\Tables\Filters\Filter::make('date')
                     ->label('Fecha')
                     ->form([
