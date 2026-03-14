@@ -16,6 +16,10 @@ class Product extends Model implements Commentable
 
     public $timestamps = false;
 
+    protected $attributes = [
+        'unit_of_measure' => 'Und',
+    ];
+
     protected $fillable = [
         'name',
         'brand',

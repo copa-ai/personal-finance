@@ -42,6 +42,7 @@ class ProductForm
                         ])),
                     TextInput::make('unit_of_measure')
                         ->label('Unidad de Medida (Ej: kg, L, ud)')
+                        ->default('Und')
                         ->required(),
                 ]),
             Section::make('Métricas y Estado')

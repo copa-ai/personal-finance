@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->string('brand', 100)->nullable();
             $table->string('variant', 100)->nullable();
             $table->uuid('category_id');
-            $table->string('unit_of_measure', 20);
+            $table->string('unit_of_measure', 20)->default('Und');
             $table->boolean('is_consumable')->default(true);
             $table->decimal('current_quantity', 12, 3)->default(0.0);
             $table->decimal('daily_consumption_rate', 10, 5)->nullable();
