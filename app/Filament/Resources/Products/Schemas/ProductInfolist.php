@@ -49,6 +49,10 @@ class ProductInfolist
                                 ->money('EUR'),
                             TextEntry::make('active')
                                 ->label('Activo')
+                                ->afterLabel(Schema::start([
+                                    Icon::make(Heroicon::QuestionMarkCircle)
+                                        ->tooltip('Indica si el producto está disponible (activo) o archivado (inactivo). Los productos inactivos se mantienen para el historial.'),
+                                ]))
                                 ->badge()
                                 ->formatStateUsing(fn (?bool $state): string => $state ? 'Si' : 'No'),
                             TextEntry::make('notes')

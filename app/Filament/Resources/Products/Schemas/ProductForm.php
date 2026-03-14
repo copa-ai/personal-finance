@@ -53,6 +53,10 @@ class ProductForm
                         ->required(),
                     Toggle::make('active')
                         ->label('¿Activo?')
+                        ->afterLabel(Schema::start([
+                            Icon::make(Heroicon::QuestionMarkCircle)
+                                ->tooltip('Activa o desactiva el producto. Si está inactivo, seguirá guardado para el historial, pero podrás filtrarlo y evitar usarlo en nuevos registros.'),
+                        ]))
                         ->default(true)
                         ->required(),
                     TextInput::make('current_quantity')

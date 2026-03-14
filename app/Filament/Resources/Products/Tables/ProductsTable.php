@@ -53,6 +53,7 @@ class ProductsTable
                     ->sortable(),
                 IconColumn::make('active')
                     ->label('¿Activo?')
+                    ->headerTooltip('Activa o desactiva el producto. Si está inactivo, seguirá guardado para el historial, pero podrás filtrarlo y evitar usarlo en nuevos registros.')
                     ->boolean(),
                 TextColumn::make('last_updated_at')
                     ->label('Última Actualización')
