@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Expenses\Schemas;
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
+use App\Models\Product;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
@@ -17,6 +18,11 @@ use Filament\Schemas\Schema;
 
 class ExpenseItemForm
 {
+    /**
+     * @var array<string, string|null>
+     */
+    private static array $unitOfMeasureCache = [];
+
     private static function parseNumeric(mixed $value): ?float
     {
         if (is_string($value)) {
@@ -35,6 +41,24 @@ class ExpenseItemForm
         return number_format($value, 2, '.', '');
     }
 
+    private static function unitOfMeasureForProduct(?string $productId): ?string
+    {
+        if (blank($productId)) {
+            return null;
+        }
+
+        if (array_key_exists($productId, self::$unitOfMeasureCache)) {
+            return self::$unitOfMeasureCache[$productId];
+        }
+
+        $unit = Product::query()->whereKey($productId)->value('unit_of_measure');
+        $unit = filled($unit) ? trim((string) $unit) : null;
+
+        self::$unitOfMeasureCache[$productId] = $unit;
+
+        return $unit;
+    }
+
     public static function components(bool $includeExpenseField = false): array
     {
         $conceptSectionSchema = [];
@@ -51,6 +75,7 @@ class ExpenseItemForm
         $conceptSectionSchema[] = Select::make('product_id')
             ->relationship('product', 'name')
             ->label('Producto Base')
+            ->live()
             ->createOptionForm(ProductForm::components())
             ->editOptionForm(ProductForm::components());
         $conceptSectionSchema[] = TextInput::make('concept')
@@ -133,6 +158,11 @@ class ExpenseItemForm
                         ->required()
                         ->numeric()
                         ->prefix('€')
+                        ->suffix(static function (Get $get): ?string {
+                            $unit = self::unitOfMeasureForProduct($get('product_id'));
+
+                            return filled($unit) ? ('/' . $unit) : null;
+                        })
                         ->reactive()
                         ->afterStateUpdated(static function (Set $set, Get $get): void {
                             $quantity = self::parseNumeric($get('quantity'));
