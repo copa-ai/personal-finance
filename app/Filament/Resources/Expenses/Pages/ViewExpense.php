@@ -15,8 +15,7 @@ class ViewExpense extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
-            CommentsAction::make()->mentionables(User::query()->get()),
+            EditAction::make()
         ];
     }
 }

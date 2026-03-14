@@ -68,6 +68,8 @@ class ExpenseInfolist
                 Section::make('Comentarios')
                     ->components([
                         CommentsEntry::make('comments')
+                            ->poll('10s')
+                            ->disableSidebar()
                             ->mentionables(fn (Model $record) => User::query()->get())
                             ->columnSpanFull(),
                     ]),
