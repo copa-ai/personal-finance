@@ -80,8 +80,7 @@ class ExpenseItemForm
             ->editOptionForm(ProductForm::components());
         $conceptSectionSchema[] = TextInput::make('concept')
             ->label('Concepto')
-            ->columnSpanFull()
-            ->required();
+            ->columnSpanFull();
         $conceptSectionSchema[] = TagsInput::make('tags')
             ->label('Etiquetas')
             ->columnSpanFull();
@@ -190,6 +189,7 @@ class ExpenseItemForm
                         ->label('Clasificación')
                         ->helperText('Indica si este subgasto es fijo o variable. Se usa para clasificar, filtrar e informar.')
                         ->options(ExpenseItemType::class)
+                        ->default(ExpenseItemType::FIXED->value)
                         ->required(),
                     Select::make('recurrence')
                         ->label('Recurrencia')
