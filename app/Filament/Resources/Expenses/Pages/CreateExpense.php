@@ -2,10 +2,8 @@
 
 namespace App\Filament\Resources\Expenses\Pages;
 
-use App\Enums\ExpenseItemType;
-use App\Enums\Recurrence;
 use App\Filament\Resources\Expenses\ExpenseResource;
-use App\Models\ExpenseItem;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateExpense extends CreateRecord
@@ -22,20 +20,17 @@ class CreateExpense extends CreateRecord
         return $data;
     }
 
-    protected function afterCreate(): void
+    protected function handleRecordCreation(array $data): Model
     {
-        if (! $this->shouldCreateSingleExpenseItem) {
-            return;
+        $record = new ($this->getModel())($data);
+        $record->shouldCreateSingleItem = $this->shouldCreateSingleExpenseItem;
+
+        if ($parentRecord = $this->getParentRecord()) {
+            return $this->associateRecordWithParent($record, $parentRecord);
         }
 
-        ExpenseItem::create([
-            'expense_id' => $this->record->id,
-            'concept' => $this->record->establishment,
-            'quantity' => 1,
-            'unit_price' => $this->record->total,
-            'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
-            'recurrence' => Recurrence::NONE,
-            'is_consumable' => true,
-        ]);
+        $record->save();
+
+        return $record;
     }
 }

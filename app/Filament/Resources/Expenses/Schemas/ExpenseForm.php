@@ -8,9 +8,9 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Get;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class ExpenseForm
@@ -67,7 +67,13 @@ class ExpenseForm
                         ->label('Crear subgasto único por el total')
                         ->helperText('Crea automáticamente un subgasto con el importe total del gasto.')
                         ->default(false)
-                        ->dehydrated(false)
+                        ->dehydrated(function ($livewire): bool {
+                            if (method_exists($livewire, 'getFormContext')) {
+                                return $livewire->getFormContext() === 'create';
+                            }
+
+                            return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
+                        })
                         ->visible(function ($livewire): bool {
                             if (method_exists($livewire, 'getFormContext')) {
                                 return $livewire->getFormContext() === 'create';

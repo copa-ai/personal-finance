@@ -15,6 +15,8 @@ class Expense extends Model implements Commentable
     use HasComments;
     use HasUuids;
 
+    public bool $shouldCreateSingleItem = false;
+
     public $timestamps = false;
 
     protected ?string $subexpensesTotalCache = null;
