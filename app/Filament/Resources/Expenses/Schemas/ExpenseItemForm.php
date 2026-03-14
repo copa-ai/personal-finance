@@ -63,10 +63,12 @@ class ExpenseItemForm
 
         return [
             Section::make('Concepto y Producto')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema($conceptSectionSchema),
             Section::make('Finanzas')
                 ->columns(3)
+                ->columnSpanFull()
                 ->schema([
                     TextInput::make('quantity')
                         ->label('Cantidad')
@@ -151,6 +153,7 @@ class ExpenseItemForm
                         }),
                 ]),
             Section::make('Clasificación y Fechas')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
                     Select::make('item_type')

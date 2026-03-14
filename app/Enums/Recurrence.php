@@ -2,10 +2,22 @@
 
 namespace App\Enums;
 
-enum Recurrence: string
+use Filament\Support\Contracts\HasLabel;
+
+enum Recurrence: string implements HasLabel
 {
     case NONE = 'NONE';
     case MONTHLY = 'MONTHLY';
     case QUARTERLY = 'QUARTERLY';
     case YEARLY = 'YEARLY';
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::NONE => 'Ninguna',
+            self::MONTHLY => 'Mensual',
+            self::QUARTERLY => 'Trimestral',
+            self::YEARLY => 'Anual',
+        };
+    }
 }
