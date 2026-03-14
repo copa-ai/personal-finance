@@ -38,7 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())
             ->plugin(\Caresome\FilamentNeobrutalism\NeobrutalismeTheme::make())
-            ->plugin(FilamentCommandPalettePlugin::make())
+            // ->plugin(FilamentCommandPalettePlugin::make())
             ->colors([
                 'primary' => Color::Green,
             ])
