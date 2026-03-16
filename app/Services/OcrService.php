@@ -19,6 +19,11 @@ class OcrService
      */
     private const LOG_PREFIX = '[OcrService]';
 
+    public function getOcrModel(): string
+    {
+        return $this->ocrModel();
+    }
+
     /**
      * @return array<int, array{concept: string, quantity: string, unit_price: string}>
      */

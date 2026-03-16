@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\Expenses\Pages;
 
 use App\Filament\Resources\Expenses\ExpenseResource;
+use App\Enums\OcrJobStatus;
+use App\Jobs\ProcessOcrJob;
 use App\Models\Expense;
-use App\Services\OcrService;
+use App\Models\OcrJob;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -22,7 +24,7 @@ class ViewExpense extends ViewRecord
                 ->icon('heroicon-o-document-magnifying-glass')
                 ->visible(fn (Expense $record): bool => filled($record->ticket_photo_hash))
                 ->color(fn (Expense $record): string => $record->items()->exists() ? 'gray' : 'primary')
-                ->action(function (Expense $record, OcrService $ocrService): void {
+                ->action(function (Expense $record): void {
                     if ($record->items()->exists()) {
                         Notification::make()
                             ->warning()
@@ -33,21 +35,35 @@ class ViewExpense extends ViewRecord
                         return;
                     }
 
-                    try {
-                        $count = $ocrService->importExpenseItemsFromTicketOcr($record);
+                    $alreadyPending = OcrJob::query()
+                        ->where('expense_id', $record->id)
+                        ->where('status', OcrJobStatus::PENDING)
+                        ->exists();
 
+                    if ($alreadyPending) {
                         Notification::make()
-                            ->success()
-                            ->title('OCR completado')
-                            ->body("Se crearon {$count} líneas y el gasto quedó pendiente de revisar.")
+                            ->warning()
+                            ->title('OCR ya en cola')
+                            ->body('Ya existe un proceso OCR pendiente para este gasto.')
                             ->send();
-                    } catch (\Throwable $e) {
-                        Notification::make()
-                            ->danger()
-                            ->title('Error de OCR')
-                            ->body($e->getMessage())
-                            ->send();
+
+                        return;
                     }
+
+                    $ocrJob = OcrJob::query()->create([
+                        'expense_id' => $record->id,
+                        'user_id' => auth()->id(),
+                        'status' => OcrJobStatus::PENDING,
+                        'ticket_path' => $record->ticket_photo_hash,
+                    ]);
+
+                    ProcessOcrJob::dispatch($ocrJob->id);
+
+                    Notification::make()
+                        ->success()
+                        ->title('OCR en cola')
+                        ->body('Te avisaremos cuando finalice el procesamiento.')
+                        ->send();
                 }),
             EditAction::make(),
         ];

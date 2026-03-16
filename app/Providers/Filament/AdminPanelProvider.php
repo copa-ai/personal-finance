@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('')
             ->login()
             ->spa()
+            ->databaseNotifications()
             ->globalSearchKeyBindings(['mod+shift+k'])
             ->maxContentWidth(Width::Full)
             ->topNavigation()
