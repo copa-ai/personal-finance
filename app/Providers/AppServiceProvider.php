@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\ExpenseItem;
 use App\Observers\ExpenseObserver;
 use App\Observers\ExpenseItemObserver;
+use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        FilamentTimezone::set('Europe/Madrid');
+
+        // Observers
         Expense::observe(ExpenseObserver::class);
         ExpenseItem::observe(ExpenseItemObserver::class);
     }
