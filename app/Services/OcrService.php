@@ -28,42 +28,26 @@ class OcrService
         }
 
         $absolutePath = Storage::disk('local')->path($ticketPath);
-
         $contents = @file_get_contents($absolutePath);
 
         if ($contents === false) {
             throw new RuntimeException('No se pudo leer el fichero del ticket.');
         }
 
-        $mimeType = $this->detectMimeType($absolutePath) ?? 'image/png';
-        $dataUrl = sprintf('data:%s;base64,%s', $mimeType, base64_encode($contents));
+        // Codificar imagen en base64 (sin el prefijo data:image/...)
+        $imageBase64 = base64_encode($contents);
 
         $payload = [
             'model' => $this->ocrModel(),
-            'temperature' => 0,
+            'prompt' => $this->prompt(),
+            'images' => [$imageBase64],
             'stream' => false,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $this->prompt(),
-                        ],
-                        [
-                            'type' => 'image_url',
-                            'image_url' => [
-                                'url' => $dataUrl,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'format' => 'json', // Ollama puede forzar respuesta JSON
         ];
 
-        $response = $this->postJson($this->chatCompletionsUrl(), $payload);
+        $response = $this->postJson($this->generateUrl(), $payload);
 
-        $content = data_get($response, 'choices.0.message.content');
+        $content = data_get($response, 'response');
 
         if (! is_string($content) || blank($content)) {
             throw new RuntimeException('La respuesta del OCR no contiene contenido.');
@@ -136,9 +120,7 @@ class OcrService
             }
 
             $concept = isset($item['concept']) ? trim((string) $item['concept']) : '';
-            $concept = function_exists('mb_substr')
-                ? mb_substr($concept, 0, 255)
-                : substr($concept, 0, 255);
+            $concept = function_exists('mb_substr') ? mb_substr($concept, 0, 255) : substr($concept, 0, 255);
 
             $quantity = $this->parseDecimal($item['quantity'] ?? null);
             $unitPrice = $this->parseDecimal($item['unit_price'] ?? null);
@@ -172,33 +154,50 @@ class OcrService
     private function prompt(): string
     {
         return <<<'PROMPT'
-Extrae las líneas de productos/servicios del ticket y devuélvelas SOLO como JSON válido (sin texto adicional, sin markdown).
+Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
 
-Formato exacto:
+Devuelve ÚNICAMENTE un objeto JSON válido con este formato exacto (sin texto adicional, sin markdown, sin bloques de código):
+
 {
   "items": [
-    { "concept": "string", "quantity": 1, "unit_price": 0.0 }
+    {
+      "concept": "Nombre del producto o servicio",
+      "quantity": 1.0,
+      "unit_price": 0.0
+    }
   ]
 }
 
-Reglas:
-- "concept" debe ser el nombre/descripción de la línea (sin el precio).
-- "quantity" debe ser numérico (usa 1 si no aparece).
-- "unit_price" debe ser el precio unitario numérico (usa 0 si no aparece).
+Reglas obligatorias:
+- "concept": El nombre completo o descripción del producto/servicio (sin incluir precio ni cantidad)
+- "quantity": Cantidad numérica del producto (si no aparece, usar 1)
+- "unit_price": Precio unitario numérico en formato decimal (si no aparece, usar 0)
+- Incluir todas las líneas visibles en el ticket
+- No incluir totales, subtotales, impuestos o información de pago
+- Usar números decimales con punto (.), no coma
+- La respuesta debe ser JSON válido sin formato markdown
+
+Ejemplo de respuesta:
+{
+  "items": [
+    {"concept": "Pan integral", "quantity": 2, "unit_price": 1.50},
+    {"concept": "Leche entera 1L", "quantity": 1, "unit_price": 0.95}
+  ]
+}
 PROMPT;
     }
 
-    private function chatCompletionsUrl(): string
+    private function generateUrl(): string
     {
-        $base = trim((string) config('services.ollama.url', 'host.docker.internal:11434'));
+        $base = trim((string) config('services.ollama.url', 'http://localhost:11434'));
 
         if (! str_starts_with($base, 'http://') && ! str_starts_with($base, 'https://')) {
-            $base = 'http://' . $base;
+            $base = 'http://'.$base;
         }
 
         $base = rtrim($base, '/');
 
-        return $base . '/v1/chat/completions';
+        return $base.'/api/generate';
     }
 
     private function ocrModel(): string
@@ -213,7 +212,7 @@ PROMPT;
      */
     private function postJson(string $url, array $payload): array
     {
-        $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         if ($body === false) {
             throw new RuntimeException('No se pudo serializar la petición del OCR.');
@@ -232,27 +231,30 @@ PROMPT;
                 'Content-Type: application/json',
             ],
             CURLOPT_POSTFIELDS => $body,
-            CURLOPT_TIMEOUT => 120,
+            CURLOPT_TIMEOUT => 300, // Aumentado para procesamiento de imágenes
         ]);
 
         $responseBody = curl_exec($ch);
         $curlError = curl_error($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
         curl_close($ch);
 
         if ($responseBody === false) {
-            throw new RuntimeException('Error cURL ejecutando OCR: ' . ($curlError ?: 'desconocido'));
+            throw new RuntimeException('Error cURL ejecutando OCR: '.($curlError ?: 'desconocido'));
         }
 
         if ($httpCode < 200 || $httpCode >= 300) {
-            throw new RuntimeException(sprintf('OCR falló con HTTP %d: %s', $httpCode, $this->trimForError($responseBody)));
+            throw new RuntimeException(sprintf(
+                'OCR falló con HTTP %d: %s',
+                $httpCode,
+                $this->trimForError($responseBody)
+            ));
         }
 
         $decoded = json_decode($responseBody, true);
 
         if (! is_array($decoded)) {
-            throw new RuntimeException('El OCR devolvió JSON inválido: ' . $this->trimForError($responseBody));
+            throw new RuntimeException('El OCR devolvió JSON inválido: '.$this->trimForError($responseBody));
         }
 
         return $decoded;
@@ -261,7 +263,6 @@ PROMPT;
     private function trimForError(string $value): string
     {
         $value = trim($value);
-
         $len = function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
 
         if ($len <= 500) {
@@ -270,7 +271,7 @@ PROMPT;
 
         $prefix = function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
 
-        return $prefix . '…';
+        return $prefix.'…';
     }
 
     /**
@@ -286,14 +287,12 @@ PROMPT;
         }
 
         $content = $this->stripFencedJson($content);
-
         $fenced = json_decode($content, true);
         if (is_array($fenced)) {
             return $fenced;
         }
 
         $extracted = $this->extractFirstJsonObject($content);
-
         if ($extracted !== null) {
             $decoded = json_decode($extracted, true);
             if (is_array($decoded)) {
@@ -306,11 +305,11 @@ PROMPT;
 
     private function stripFencedJson(string $content): string
     {
-        if (preg_match('/```(?:json)?\\s*(\\{.*\\})\\s*```/sU', $content, $matches)) {
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/sU', $content, $matches)) {
             return trim($matches[1]);
         }
 
-        if (preg_match('/^```(?:json)?\\s*(.*?)\\s*```$/s', $content, $matches)) {
+        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $content, $matches)) {
             return trim($matches[1]);
         }
 
@@ -321,8 +320,8 @@ PROMPT;
     {
         $content = trim($content);
         $length = strlen($content);
-
         $start = strpos($content, '{');
+
         if ($start === false) {
             return null;
         }
@@ -339,16 +338,13 @@ PROMPT;
                     $escape = false;
                     continue;
                 }
-
                 if ($ch === '\\') {
                     $escape = true;
                     continue;
                 }
-
                 if ($ch === '"') {
                     $inString = false;
                 }
-
                 continue;
             }
 
@@ -364,7 +360,6 @@ PROMPT;
 
             if ($ch === '}') {
                 $depth--;
-
                 if ($depth === 0) {
                     return substr($content, $start, $i - $start + 1);
                 }
@@ -403,23 +398,5 @@ PROMPT;
     private function formatDecimal(float $value, int $decimals): string
     {
         return number_format($value, $decimals, '.', '');
-    }
-
-    private function detectMimeType(string $path): ?string
-    {
-        if (class_exists(\finfo::class)) {
-            $finfo = new \finfo(FILEINFO_MIME_TYPE);
-            $mime = $finfo->file($path);
-
-            return is_string($mime) && filled($mime) ? $mime : null;
-        }
-
-        if (function_exists('mime_content_type')) {
-            $mime = @mime_content_type($path);
-
-            return is_string($mime) && filled($mime) ? $mime : null;
-        }
-
-        return null;
     }
 }
