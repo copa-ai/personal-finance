@@ -25,7 +25,7 @@ class OcrService
     public function extractTicketItems(Expense $expense): array
     {
         $startTime = microtime(true);
-        $expenseId = $expense->id;
+        $expenseId = $expense->id; // Puede ser string o int
 
         Log::info(self::LOG_PREFIX . ' Iniciando extracción OCR', [
             'expense_id' => $expenseId,
@@ -122,7 +122,7 @@ class OcrService
                 'format' => 'json',
             ];
 
-            // Enviar petición
+            // Enviar petición - CORREGIDO: third parameter type to mixed
             $response = $this->postJson($url, $payload, $expenseId);
 
             $content = isset($response['response']) ? $response['response'] : null;
@@ -277,7 +277,7 @@ class OcrService
     /**
      * @return array<int, array{concept: string, quantity: string, unit_price: string}>
      */
-    public function parseResponseContent(string $content, int $expenseId = null): array
+    public function parseResponseContent(string $content, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
     {
         Log::debug(self::LOG_PREFIX . ' Parseando contenido de respuesta', [
             'expense_id' => $expenseId,
@@ -457,9 +457,10 @@ PROMPT;
     }
 
     /**
+     * CORREGIDO: tercer parámetro como mixed (no ?int) para aceptar strings (UUIDs)
      * @return array<string, mixed>
      */
-    private function postJson(string $url, array $payload, int $expenseId = null): array
+    private function postJson(string $url, array $payload, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
     {
         $requestStartTime = microtime(true);
 
@@ -700,9 +701,10 @@ PROMPT;
     }
 
     /**
+     * CORREGIDO: tercer parámetro como mixed (no ?int) para aceptar strings (UUIDs)
      * @return array<string, mixed>
      */
-    private function decodeJsonFromContent(string $content, int $expenseId = null): array
+    private function decodeJsonFromContent(string $content, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
     {
         $content = trim($content);
 
