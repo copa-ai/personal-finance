@@ -15,6 +15,7 @@ class OcrJobsTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->poll("5s")
             ->columns([
                 TextColumn::make('status')
                     ->label('Estado')
