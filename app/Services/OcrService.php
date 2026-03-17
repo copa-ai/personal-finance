@@ -124,10 +124,10 @@ class OcrService
                 'prompt' => $this->prompt(),
                 'images' => [$imageBase64],
                 'stream' => false,
-                'format' => 'json',
+                // ELIMINADO: 'format' => 'json' - Causa el error GGML_ASSERT
             ];
 
-            // Enviar petición - CORREGIDO: third parameter type to mixed
+            // Enviar petición
             $response = $this->postJson($url, $payload, $expenseId);
 
             $content = isset($response['response']) ? $response['response'] : null;
@@ -282,7 +282,7 @@ class OcrService
     /**
      * @return array<int, array{concept: string, quantity: string, unit_price: string}>
      */
-    public function parseResponseContent(string $content, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
+    public function parseResponseContent(string $content, $expenseId = null): array
     {
         Log::debug(self::LOG_PREFIX . ' Parseando contenido de respuesta', [
             'expense_id' => $expenseId,
@@ -400,7 +400,7 @@ class OcrService
         return <<<'PROMPT'
 Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
 
-Devuelve ÚNICAMENTE un objeto JSON válido con este formato exacto (sin texto adicional, sin markdown, sin bloques de código):
+Devuelve ÚNICAMENTE un objeto JSON válido con este formato exacto (sin texto adicional, sin markdown, sin bloques de código, sin ninguna clave adicional):
 
 {
   "items": [
@@ -420,6 +420,7 @@ Reglas obligatorias:
 - No incluir totales, subtotales, impuestos o información de pago
 - Usar números decimales con punto (.), no coma
 - La respuesta debe ser JSON válido sin formato markdown
+- NO envuelvas la respuesta en ninguna clave adicional como "text"
 
 Ejemplo de respuesta:
 {
@@ -462,10 +463,45 @@ PROMPT;
     }
 
     /**
-     * CORREGIDO: tercer parámetro como mixed (no ?int) para aceptar strings (UUIDs)
      * @return array<string, mixed>
      */
-    private function postJson(string $url, array $payload, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
+    private function postJson(string $url, array $payload, $expenseId = null): array
+    {
+        $maxRetries = 2;
+        $retryDelay = 1; // segundos
+
+        for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+            try {
+                return $this->executeCurlRequest($url, $payload, $expenseId);
+            } catch (RuntimeException $e) {
+                // Solo reintentar en errores transitorios
+                $isRetryable = str_contains($e->getMessage(), 'HTTP 500')
+                            || str_contains($e->getMessage(), 'GGML_ASSERT')
+                            || str_contains($e->getMessage(), 'TIMEOUT')
+                            || str_contains($e->getMessage(), 'CONNECTION_REFUSED')
+                            || str_contains($e->getMessage(), 'EMPTY_RESPONSE');
+
+                if ($attempt === $maxRetries || !$isRetryable) {
+                    throw $e;
+                }
+
+                Log::warning(self::LOG_PREFIX . ' Reintentando petición OCR', [
+                    'expense_id' => $expenseId,
+                    'attempt' => $attempt + 1,
+                    'error' => $e->getMessage(),
+                ]);
+
+                sleep($retryDelay);
+            }
+        }
+
+        throw new RuntimeException('Número máximo de reintentos alcanzado');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function executeCurlRequest(string $url, array $payload, $expenseId = null): array
     {
         $requestStartTime = microtime(true);
 
@@ -706,10 +742,9 @@ PROMPT;
     }
 
     /**
-     * CORREGIDO: tercer parámetro como mixed (no ?int) para aceptar strings (UUIDs)
      * @return array<string, mixed>
      */
-    private function decodeJsonFromContent(string $content, $expenseId = null): array // CAMBIADO: ?int a $expenseId = null
+    private function decodeJsonFromContent(string $content, $expenseId = null): array
     {
         $content = trim($content);
 
@@ -718,6 +753,15 @@ PROMPT;
             'content_length' => strlen($content),
             'content_preview' => $this->trimForError($content),
         ]);
+
+        // Paso 0: Manejar el wrapper {"text": "..."} de glm-ocr
+        $wrapperDecoded = json_decode($content, true);
+        if (is_array($wrapperDecoded) && isset($wrapperDecoded['text']) && is_string($wrapperDecoded['text'])) {
+            Log::debug(self::LOG_PREFIX . ' Detectado wrapper {"text": "..."}, extrayendo contenido', [
+                'expense_id' => $expenseId,
+            ]);
+            $content = trim($wrapperDecoded['text']);
+        }
 
         // Intento 1: JSON directo
         $direct = json_decode($content, true);
