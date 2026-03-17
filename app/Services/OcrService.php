@@ -519,7 +519,7 @@ PROMPT;
             $timeout = 300;
         }
     
-        Log::info(self::LOG_PREFIX . ' Enviando petición HTTP a Ollama', [
+        Log::info(self::LOG_PREFIX . ' Enviando petición HTTP a Ollama (curl CLI)', [
             'expense_id' => $expenseId,
             'url' => $url,
             'model' => $modelName,
@@ -527,103 +527,163 @@ PROMPT;
         ]);
     
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    
         if ($body === false) {
             throw new RuntimeException('No se pudo serializar la petición del OCR: ' . json_last_error_msg());
         }
     
         $bodyLength = strlen($body);
-    
         Log::debug(self::LOG_PREFIX . ' Payload serializado', [
             'expense_id' => $expenseId,
             'body_size_bytes' => $bodyLength,
             'body_size_mb' => round($bodyLength / 1024 / 1024, 2),
         ]);
     
-        $ch = curl_init($url);
-    
-        if ($ch === false) {
-            throw new RuntimeException('No se pudo inicializar cURL.');
+        // Comprobar que el binario curl está disponible
+        $whichCurl = trim((string) shell_exec('command -v curl 2>/dev/null'));
+        if ($whichCurl === '') {
+            throw new RuntimeException('curl no está disponible en el sistema. Instala curl o usa la extensión cURL de PHP.');
         }
     
-        // Headers críticos para evitar problemas con chunked / expect
-        $headers = [
-            'Content-Type: application/json',
-            'Content-Length: ' . $bodyLength,
-            'Expect:', // 👈 evita 100-continue
+        // Crear fichero temporal con el body (evita problemas de escaping y límites)
+        $tmpDir = sys_get_temp_dir();
+        $bodyFile = tempnam($tmpDir, 'ollama_body_');
+        if ($bodyFile === false) {
+            throw new RuntimeException('No se pudo crear fichero temporal para el body de la petición.');
+        }
+        file_put_contents($bodyFile, $body);
+    
+        // Construir comando curl (muy similar al que usas en la terminal)
+        $curlCmd = [
+            $whichCurl,
+            '--http1.1',
+            '-i',               // incluir cabeceras en la salida
+            '-sS',              // silencioso pero mostrar errores en stderr
+            '-X', 'POST',
+            '-H', 'Content-Type: application/json',
+            '-H', 'Expect:',    // evitar 100-continue
+            '--data-binary', '@' . $bodyFile,
+            '--max-time', (string) $timeout,
+            '--connect-timeout', '30',
+            '--no-keepalive',
+            escapeshellarg($url),
         ];
     
-        // Capturar verbose de cURL
-        $verboseStream = fopen('php://temp', 'w+');
+        // Join de forma segura sobre el array (ya escapamos url; body file está con @)
+        $cmd = implode(' ', $curlCmd);
     
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_POSTFIELDS => $body,
-            CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_CONNECTTIMEOUT => 30,
+        // Ejecutar con proc_open para capturar stdout y stderr
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'], // stdout
+            2 => ['pipe', 'w'], // stderr
+        ];
     
-            // 👇 Claves para estabilidad
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (!is_resource($process)) {
+            @unlink($bodyFile);
+            throw new RuntimeException('No se pudo ejecutar curl externo.');
+        }
     
-            // Debug
-            CURLOPT_VERBOSE => true,
-            CURLOPT_STDERR => $verboseStream,
-        ]);
+        // No escribimos nada en stdin
+        fclose($pipes[0]);
     
-        $responseBody = curl_exec($ch);
-        $curlErrno = curl_errno($ch);
-        $curlError = curl_error($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlInfo = curl_getinfo($ch);
+        // Leer salida (stdin cerrado)
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
     
-        curl_close($ch);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
     
-        // Leer verbose log
-        rewind($verboseStream);
-        $verboseLog = stream_get_contents($verboseStream);
-        fclose($verboseStream);
+        $exitCode = proc_close($process);
+    
+        // Borrar fichero temporal
+        @unlink($bodyFile);
     
         $requestDuration = round((microtime(true) - $requestStartTime) * 1000, 2);
     
-        Log::debug(self::LOG_PREFIX . ' cURL verbose output', [
+        Log::debug(self::LOG_PREFIX . ' cURL CLI stderr output', [
             'expense_id' => $expenseId,
-            'verbose' => $this->trimForError($verboseLog),
+            'stderr' => $this->trimForError($stderr),
         ]);
     
-        Log::info(self::LOG_PREFIX . ' Petición cURL completada', [
+        Log::info(self::LOG_PREFIX . ' cURL CLI completed', [
             'expense_id' => $expenseId,
-            'http_code' => $httpCode,
+            'exit_code' => $exitCode,
             'duration_ms' => $requestDuration,
-            'curl_errno' => $curlErrno,
-            'response_size_bytes' => is_string($responseBody) ? strlen($responseBody) : 0,
+            'response_size_bytes' => is_string($stdout) ? strlen($stdout) : 0,
         ]);
     
-        // Error de transporte
-        if ($responseBody === false || $curlErrno !== 0) {
-            throw new RuntimeException('Error cURL ejecutando OCR: ' . $this->getCurlErrorMessage($curlErrno, $curlError));
+        // Si curl devolvió un código de error en el sistema
+        if ($exitCode !== 0) {
+            $msg = sprintf(
+                'Error ejecutando curl externo (exit code %d): %s',
+                $exitCode,
+                $this->trimForError($stderr ?: $stdout)
+            );
+            throw new RuntimeException($msg);
         }
     
-        // Error HTTP
+        // stdout incluye cabeceras + body (-i). Extraer último bloque de cabeceras y body.
+        $stdoutNormalized = str_replace("\r\n", "\n", $stdout);
+        // Separar por doble salto de línea, hay que tomar el último bloque como body (por si hubo redirecciones)
+        $parts = preg_split("/\n\n/", $stdoutNormalized);
+        if ($parts === false || count($parts) === 0) {
+            throw new RuntimeException('Respuesta inválida de curl externo: salida vacía.');
+        }
+    
+        // El body real es el último segmento
+        $bodyContent = array_pop($parts);
+        // Los headers están en el último segmento restante (si hay varios bloques, el último bloque de cabeceras es el que nos interesa)
+        $headersCombined = implode("\n\n", $parts);
+    
+        // Obtener último HTTP status (por si hubo varios bloque HTTP/... por redirecciones)
+        $httpCode = null;
+        if (preg_match_all('/HTTP\/[0-9.]+\s+([0-9]{3})/i', $headersCombined, $matches)) {
+            $httpMatches = $matches[1];
+            if (!empty($httpMatches)) {
+                $httpCode = (int) end($httpMatches);
+            }
+        }
+    
+        if ($httpCode === null) {
+            // Fallback: si no encontramos cabecera, intentar en todo stdout
+            if (preg_match_all('/HTTP\/[0-9.]+\s+([0-9]{3})/i', $stdoutNormalized, $matchesAll)) {
+                $codesAll = $matchesAll[1];
+                if (!empty($codesAll)) {
+                    $httpCode = (int) end($codesAll);
+                }
+            }
+        }
+    
+        if ($httpCode === null) {
+            // No se pudo determinar código HTTP
+            throw new RuntimeException('No se pudo determinar el código HTTP de la respuesta del servidor.');
+        }
+    
+        Log::debug(self::LOG_PREFIX . ' cURL CLI parsed response', [
+            'expense_id' => $expenseId,
+            'http_code' => $httpCode,
+            'response_preview' => $this->trimForError($bodyContent),
+            'headers_preview' => $this->trimForError($headersCombined),
+        ]);
+    
         if ($httpCode < 200 || $httpCode >= 300) {
             throw new RuntimeException(sprintf(
                 'OCR falló con HTTP %d: %s',
                 $httpCode,
-                $this->trimForError($responseBody)
+                $this->trimForError($bodyContent ?: $stderr)
             ));
         }
     
-        // Decodificar JSON
-        $decoded = json_decode($responseBody, true);
-    
+        // Decodificar JSON del body
+        $decoded = json_decode($bodyContent, true);
         if (!is_array($decoded)) {
             throw new RuntimeException(
-                'El OCR devolvió JSON inválido: ' . $this->trimForError($responseBody)
+                'El OCR devolvió JSON inválido: ' . $this->trimForError($bodyContent)
             );
         }
     
-        Log::info(self::LOG_PREFIX . ' Respuesta del OCR recibida correctamente', [
+        Log::info(self::LOG_PREFIX . ' Respuesta del OCR recibida correctamente (CLI curl)', [
             'expense_id' => $expenseId,
             'response_keys' => array_keys($decoded),
             'has_response_field' => isset($decoded['response']),
