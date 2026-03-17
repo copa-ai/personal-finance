@@ -504,196 +504,133 @@ PROMPT;
     private function executeCurlRequest(string $url, array $payload, $expenseId = null): array
     {
         $requestStartTime = microtime(true);
-
+    
         // Preparar payload para log (sin la imagen en base64)
         $payloadForLog = $payload;
         $imageLength = 0;
-        if (isset($payload['images']) && is_array($payload['images']) && isset($payload['images'][0])) {
+        if (isset($payload['images'][0])) {
             $imageLength = strlen((string) $payload['images'][0]);
         }
         $payloadForLog['images'] = ['[BASE64_IMAGE_OMITTED - ' . $imageLength . ' chars]'];
-
-        $modelName = isset($payload['model']) ? $payload['model'] : 'unknown';
+    
+        $modelName = $payload['model'] ?? 'unknown';
         $timeout = (int) config('services.ollama.timeout', 300);
         if ($timeout <= 0) {
             $timeout = 300;
         }
-
+    
         Log::info(self::LOG_PREFIX . ' Enviando petición HTTP a Ollama', [
             'expense_id' => $expenseId,
             'url' => $url,
             'model' => $modelName,
             'timeout_seconds' => $timeout,
         ]);
-
+    
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
+    
         if ($body === false) {
-            Log::error(self::LOG_PREFIX . ' Error serializando payload JSON', [
-                'expense_id' => $expenseId,
-                'json_error' => json_last_error_msg(),
-            ]);
-            throw new RuntimeException('No se pudo serializar la petición del OCR.');
+            throw new RuntimeException('No se pudo serializar la petición del OCR: ' . json_last_error_msg());
         }
-
+    
+        $bodyLength = strlen($body);
+    
         Log::debug(self::LOG_PREFIX . ' Payload serializado', [
             'expense_id' => $expenseId,
-            'body_size_bytes' => strlen($body),
-            'body_size_mb' => round(strlen($body) / 1024 / 1024, 2),
+            'body_size_bytes' => $bodyLength,
+            'body_size_mb' => round($bodyLength / 1024 / 1024, 2),
         ]);
-
+    
         $ch = curl_init($url);
-
+    
         if ($ch === false) {
-            Log::error(self::LOG_PREFIX . ' Error inicializando cURL', [
-                'expense_id' => $expenseId,
-                'url' => $url,
-            ]);
             throw new RuntimeException('No se pudo inicializar cURL.');
         }
-
+    
+        // Headers críticos para evitar problemas con chunked / expect
+        $headers = [
+            'Content-Type: application/json',
+            'Content-Length: ' . $bodyLength,
+            'Expect:', // 👈 evita 100-continue
+        ];
+    
+        // Capturar verbose de cURL
+        $verboseStream = fopen('php://temp', 'w+');
+    
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_POSTFIELDS => $body,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => 30,
+    
+            // 👇 Claves para estabilidad
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    
+            // Debug
+            CURLOPT_VERBOSE => true,
+            CURLOPT_STDERR => $verboseStream,
         ]);
-
-        Log::debug(self::LOG_PREFIX . ' Ejecutando petición cURL...', [
-            'expense_id' => $expenseId,
-            'timeout' => $timeout,
-            'connect_timeout' => 30,
-        ]);
-
+    
         $responseBody = curl_exec($ch);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlInfo = curl_getinfo($ch);
+    
         curl_close($ch);
-
+    
+        // Leer verbose log
+        rewind($verboseStream);
+        $verboseLog = stream_get_contents($verboseStream);
+        fclose($verboseStream);
+    
         $requestDuration = round((microtime(true) - $requestStartTime) * 1000, 2);
-        $requestDurationSeconds = round($requestDuration / 1000, 2);
-
-        // Extraer valores de curlInfo de forma segura
-        $totalTime = isset($curlInfo['total_time']) ? $curlInfo['total_time'] : null;
-        $namelookupTime = isset($curlInfo['namelookup_time']) ? $curlInfo['namelookup_time'] : null;
-        $connectTime = isset($curlInfo['connect_time']) ? $curlInfo['connect_time'] : null;
-        $pretransferTime = isset($curlInfo['pretransfer_time']) ? $curlInfo['pretransfer_time'] : null;
-        $starttransferTime = isset($curlInfo['starttransfer_time']) ? $curlInfo['starttransfer_time'] : null;
-        $primaryIp = isset($curlInfo['primary_ip']) ? $curlInfo['primary_ip'] : null;
-        $primaryPort = isset($curlInfo['primary_port']) ? $curlInfo['primary_port'] : null;
-        $sizeDownload = isset($curlInfo['size_download']) ? $curlInfo['size_download'] : null;
-        $sizeUpload = isset($curlInfo['size_upload']) ? $curlInfo['size_upload'] : null;
-        $speedDownload = isset($curlInfo['speed_download']) ? $curlInfo['speed_download'] : null;
-        $speedUpload = isset($curlInfo['speed_upload']) ? $curlInfo['speed_upload'] : null;
-
-        $responseSizeBytes = is_string($responseBody) ? strlen($responseBody) : 0;
-
-        // Log de información de la petición
+    
+        Log::debug(self::LOG_PREFIX . ' cURL verbose output', [
+            'expense_id' => $expenseId,
+            'verbose' => $this->trimForError($verboseLog),
+        ]);
+    
         Log::info(self::LOG_PREFIX . ' Petición cURL completada', [
             'expense_id' => $expenseId,
             'http_code' => $httpCode,
             'duration_ms' => $requestDuration,
-            'duration_seconds' => $requestDurationSeconds,
             'curl_errno' => $curlErrno,
-            'response_size_bytes' => $responseSizeBytes,
+            'response_size_bytes' => is_string($responseBody) ? strlen($responseBody) : 0,
         ]);
-
-        // Log detallado de cURL info
-        Log::debug(self::LOG_PREFIX . ' Detalles de conexión cURL', [
-            'expense_id' => $expenseId,
-            'total_time' => $totalTime,
-            'namelookup_time' => $namelookupTime,
-            'connect_time' => $connectTime,
-            'pretransfer_time' => $pretransferTime,
-            'starttransfer_time' => $starttransferTime,
-            'primary_ip' => $primaryIp,
-            'primary_port' => $primaryPort,
-            'size_download' => $sizeDownload,
-            'size_upload' => $sizeUpload,
-            'speed_download' => $speedDownload,
-            'speed_upload' => $speedUpload,
-        ]);
-
-        // Manejar errores de cURL
+    
+        // Error de transporte
         if ($responseBody === false || $curlErrno !== 0) {
-            $errorMessage = $this->getCurlErrorMessage($curlErrno, $curlError);
-
-            Log::error(self::LOG_PREFIX . ' Error cURL', [
-                'expense_id' => $expenseId,
-                'curl_errno' => $curlErrno,
-                'curl_error' => $curlError,
-                'error_description' => $errorMessage,
-                'duration_ms' => $requestDuration,
-                'url' => $url,
-                'timeout_configured' => $timeout,
-            ]);
-
-            throw new RuntimeException('Error cURL ejecutando OCR: ' . $errorMessage);
+            throw new RuntimeException('Error cURL ejecutando OCR: ' . $this->getCurlErrorMessage($curlErrno, $curlError));
         }
-
-        // Manejar códigos HTTP de error
+    
+        // Error HTTP
         if ($httpCode < 200 || $httpCode >= 300) {
-            Log::error(self::LOG_PREFIX . ' Error HTTP del servidor OCR', [
-                'expense_id' => $expenseId,
-                'http_code' => $httpCode,
-                'response_body' => $this->trimForError($responseBody),
-                'duration_ms' => $requestDuration,
-            ]);
-
             throw new RuntimeException(sprintf(
                 'OCR falló con HTTP %d: %s',
                 $httpCode,
                 $this->trimForError($responseBody)
             ));
         }
-
-        // Decodificar respuesta JSON
+    
+        // Decodificar JSON
         $decoded = json_decode($responseBody, true);
-
+    
         if (!is_array($decoded)) {
-            Log::error(self::LOG_PREFIX . ' Respuesta JSON inválida del OCR', [
-                'expense_id' => $expenseId,
-                'json_error' => json_last_error_msg(),
-                'response_preview' => $this->trimForError($responseBody),
-            ]);
-            throw new RuntimeException('El OCR devolvió JSON inválido: ' . $this->trimForError($responseBody));
+            throw new RuntimeException(
+                'El OCR devolvió JSON inválido: ' . $this->trimForError($responseBody)
+            );
         }
-
-        // Extraer valores de decoded de forma segura
-        $hasResponseField = isset($decoded['response']);
-        $responseLength = 0;
-        if ($hasResponseField) {
-            $responseLength = strlen((string) $decoded['response']);
-        }
-        $modelUsed = isset($decoded['model']) ? $decoded['model'] : 'unknown';
-        $evalCount = isset($decoded['eval_count']) ? $decoded['eval_count'] : null;
-        $evalDuration = isset($decoded['eval_duration']) ? $decoded['eval_duration'] : null;
-        $loadDuration = isset($decoded['load_duration']) ? $decoded['load_duration'] : null;
-        $promptEvalCount = isset($decoded['prompt_eval_count']) ? $decoded['prompt_eval_count'] : null;
-        $promptEvalDuration = isset($decoded['prompt_eval_duration']) ? $decoded['prompt_eval_duration'] : null;
-        $totalDurationNs = isset($decoded['total_duration']) ? $decoded['total_duration'] : null;
-
-        // Log de respuesta exitosa
+    
         Log::info(self::LOG_PREFIX . ' Respuesta del OCR recibida correctamente', [
             'expense_id' => $expenseId,
             'response_keys' => array_keys($decoded),
-            'has_response_field' => $hasResponseField,
-            'response_length' => $responseLength,
-            'model_used' => $modelUsed,
-            'eval_count' => $evalCount,
-            'eval_duration' => $evalDuration,
-            'load_duration' => $loadDuration,
-            'prompt_eval_count' => $promptEvalCount,
-            'prompt_eval_duration' => $promptEvalDuration,
-            'total_duration_ns' => $totalDurationNs,
+            'has_response_field' => isset($decoded['response']),
+            'response_length' => isset($decoded['response']) ? strlen((string)$decoded['response']) : 0,
+            'model_used' => $decoded['model'] ?? 'unknown',
         ]);
-
+    
         return $decoded;
     }
 
