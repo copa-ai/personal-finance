@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Expenses\Tables;
 
+use App\Models\Expense;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -41,6 +42,7 @@ class ExpensesTable
                     ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray'),
                 TextColumn::make('pending_review')
                     ->label('Pendiente de Revisar')
+                    ->getStateUsing(fn (Expense $record): bool => $record->pending_review || $record->hasPendingSubexpenses())
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
                     ->badge()
                     ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
