@@ -31,6 +31,9 @@ class ProductsTable
                     ->label('Variante')
                     ->searchable(),
                 TextColumn::make('category.name')
+                    ->label('Categoría')
+                    ->searchable(),
+                TextColumn::make('need.name')
                     ->label('Necesidad')
                     ->searchable(),
                 TextColumn::make('unit_of_measure')
@@ -68,6 +71,9 @@ class ProductsTable
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('category_id')
                     ->relationship('category', 'name')
+                    ->label('Categoría'),
+                \Filament\Tables\Filters\SelectFilter::make('need_id')
+                    ->relationship('need', 'name')
                     ->label('Necesidad'),
                 \Filament\Tables\Filters\TernaryFilter::make('is_consumable')
                     ->label('¿Es Consumible?'),

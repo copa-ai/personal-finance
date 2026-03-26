@@ -36,6 +36,11 @@ class AdminPanelProvider extends PanelProvider
             ->globalSearchKeyBindings(['mod+shift+k'])
             ->maxContentWidth(Width::Full)
             ->topNavigation()
+            ->navigationGroups([
+                'Finanzas',
+                'Inventario',
+                'IA',
+            ])
             ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())
             ->plugin(\Caresome\FilamentNeobrutalism\NeobrutalismeTheme::make())

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\ProductCategories\Tables;
+namespace App\Filament\Resources\Needs\Tables;
 
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
@@ -12,7 +12,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
-class ProductCategoriesTable
+class NeedsTable
 {
     public static function configure(Table $table): Table
     {

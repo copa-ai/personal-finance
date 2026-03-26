@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Filament\Resources\ProductCategories\Pages;
+namespace App\Filament\Resources\Needs\Pages;
 
-use App\Filament\Resources\ProductCategories\ProductCategoryResource;
+use App\Filament\Resources\Needs\NeedResource;
 use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
-class ViewProductCategory extends ViewRecord
+class ViewNeed extends ViewRecord
 {
-    protected static string $resource = ProductCategoryResource::class;
+    protected static string $resource = NeedResource::class;
 
     protected function getHeaderActions(): array
     {

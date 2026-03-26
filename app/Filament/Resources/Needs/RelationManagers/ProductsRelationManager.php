@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\ProductCategories\RelationManagers;
+namespace App\Filament\Resources\Needs\RelationManagers;
 
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
@@ -22,7 +22,7 @@ class ProductsRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return ProductForm::configure($schema, hideCategoryField: true);
+        return ProductForm::configure($schema, hideNeedField: true);
     }
 
     public function table(Table $table): Table

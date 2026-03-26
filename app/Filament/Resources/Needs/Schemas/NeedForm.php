@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Filament\Resources\ProductCategories\Schemas;
+namespace App\Filament\Resources\Needs\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class ProductCategoryForm
+class NeedForm
 {
     public static function components(): array
     {

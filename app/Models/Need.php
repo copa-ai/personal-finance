@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Kirschbaum\Commentions\Contracts\Commentable;
 use Kirschbaum\Commentions\HasComments;
 
-class ProductCategory extends Model implements Commentable
+class Need extends Model implements Commentable
 {
     use HasComments;
     use HasUuids;
@@ -29,6 +29,6 @@ class ProductCategory extends Model implements Commentable
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class, 'category_id');
+        return $this->hasMany(Product::class, 'need_id');
     }
 }

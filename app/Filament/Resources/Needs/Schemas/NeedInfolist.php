@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\ProductCategories\Schemas;
+namespace App\Filament\Resources\Needs\Schemas;
 
 use App\Models\User;
 use Filament\Infolists\Components\TextEntry;
@@ -10,7 +10,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Infolists\Components\CommentsEntry;
 
-class ProductCategoryInfolist
+class NeedInfolist
 {
     public static function configure(Schema $schema): Schema
     {
@@ -29,7 +29,7 @@ class ProductCategoryInfolist
                                 ->label('Creada')
                                 ->dateTime(),
                             TextEntry::make('description')
-                                ->label('Descripcion')
+                                ->label('Descripción')
                                 ->columnSpanFull(),
                         ])
                         ->grow(),

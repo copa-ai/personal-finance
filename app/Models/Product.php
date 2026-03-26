@@ -25,6 +25,7 @@ class Product extends Model implements Commentable
         'brand',
         'variant',
         'category_id',
+        'need_id',
         'unit_of_measure',
         'is_consumable',
         'current_quantity',
@@ -48,7 +49,12 @@ class Product extends Model implements Commentable
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(ProductCategory::class, 'category_id');
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function need(): BelongsTo
+    {
+        return $this->belongsTo(Need::class, 'need_id');
     }
 
     public function ratings(): HasMany

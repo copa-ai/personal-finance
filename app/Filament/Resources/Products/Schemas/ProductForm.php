@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
-use App\Filament\Resources\ProductCategories\Schemas\ProductCategoryForm;
+use App\Filament\Resources\Needs\Schemas\NeedForm;
+use App\Filament\Resources\Categories\Schemas\CategoryForm;
+use App\Models\Category;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,7 +17,7 @@ use Filament\Support\Icons\Heroicon;
 
 class ProductForm
 {
-    public static function components(bool $hideCategoryField = false): array
+    public static function components(bool $hideCategoryField = false, bool $hideNeedField = false): array
     {
         return [
             Section::make('Información Básica')
@@ -25,20 +27,43 @@ class ProductForm
                         ->label('Nombre')
                         ->required(),
                     Select::make('category_id')
-                        ->relationship('category', 'name')
-                        ->label('Necesidad')
-                        ->createOptionForm(ProductCategoryForm::components())
-                        ->editOptionForm(ProductCategoryForm::components())
+                        ->label('Categoría')
+                        ->options(fn () => Category::query()
+                            ->with(['parent.parent'])
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(function (Category $category): array {
+                                $ancestors = $category->ancestor_names;
+                                $suffix = $ancestors
+                                    ? ' (' . implode(' > ', $ancestors) . ')'
+                                    : '';
+
+                                return [$category->id => $category->name . $suffix];
+                            })
+                            ->all())
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
                         ->hidden($hideCategoryField)
                         ->dehydrated(! $hideCategoryField)
-                        ->required(! $hideCategoryField),
+                        ->relationship('category', 'name')
+                        ->createOptionForm(CategoryForm::components())
+                        ->editOptionForm(CategoryForm::components()),
+                    Select::make('need_id')
+                        ->relationship('need', 'name')
+                        ->label('Necesidad')
+                        ->nullable()
+                        ->createOptionForm(NeedForm::components())
+                        ->editOptionForm(NeedForm::components())
+                        ->hidden($hideNeedField)
+                        ->dehydrated(! $hideNeedField),
                     TextInput::make('brand')
                         ->label('Marca'),
                     TextInput::make('variant')
                         ->label('Variante')
                         ->afterLabel(Schema::start([
                             Icon::make(Heroicon::QuestionMarkCircle)
-                                ->tooltip('Especifica la variante del producto, por ejemplo sabor, tamano o modelo.'),
+                                ->tooltip('Especifica la variante del producto, por ejemplo sabor, tamaño o modelo.'),
                         ])),
                     TextInput::make('unit_of_measure')
                         ->label('Unidad de Medida (Ej: kg, L, ud)')
@@ -90,9 +115,12 @@ class ProductForm
         ];
     }
 
-    public static function configure(Schema $schema, bool $hideCategoryField = false): Schema
-    {
+    public static function configure(
+        Schema $schema,
+        bool $hideCategoryField = false,
+        bool $hideNeedField = false
+    ): Schema {
         return $schema
-            ->components(self::components($hideCategoryField));
+            ->components(self::components($hideCategoryField, $hideNeedField));
     }
 }

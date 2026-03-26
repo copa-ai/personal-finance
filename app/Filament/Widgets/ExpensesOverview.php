@@ -3,8 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Expense;
+use App\Models\Need;
 use App\Models\Product;
-use App\Models\ProductCategory;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -21,7 +21,7 @@ class ExpensesOverview extends StatsOverviewWidget
                 ->description('Productos registrados')
                 ->descriptionIcon('heroicon-m-shopping-bag')
                 ->color('info'),
-            Stat::make('Necesidades', ProductCategory::count())
+            Stat::make('Necesidades', Need::count())
                 ->description('Clasificaciones activas')
                 ->descriptionIcon('heroicon-m-tag')
                 ->color('primary'),
