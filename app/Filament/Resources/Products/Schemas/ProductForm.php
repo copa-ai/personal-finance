@@ -28,25 +28,24 @@ class ProductForm
                         ->required(),
                     Select::make('category_id')
                         ->label('Categoría')
-                        ->options(fn () => Category::query()
-                            ->with(['parent.parent'])
-                            ->orderBy('name')
-                            ->get()
-                            ->mapWithKeys(function (Category $category): array {
-                                $ancestors = $category->ancestor_names;
-                                $suffix = $ancestors
-                                    ? ' (' . implode(' > ', $ancestors) . ')'
-                                    : '';
-
-                                return [$category->id => $category->name . $suffix];
-                            })
-                            ->all())
                         ->searchable()
                         ->preload()
                         ->nullable()
                         ->hidden($hideCategoryField)
                         ->dehydrated(! $hideCategoryField)
-                        ->relationship('category', 'name')
+                        ->relationship(
+                            'category',
+                            'name',
+                            fn ($query) => $query->with(['parent.parent'])->orderBy('name')
+                        )
+                        ->getOptionLabelFromRecordUsing(function (Category $category): string {
+                            $ancestors = $category->ancestor_names;
+                            $suffix = $ancestors
+                                ? ' (' . implode(' > ', $ancestors) . ')'
+                                : '';
+
+                            return $category->name . $suffix;
+                        })
                         ->createOptionForm(CategoryForm::components())
                         ->editOptionForm(CategoryForm::components()),
                     Select::make('need_id')
