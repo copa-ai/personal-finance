@@ -30,6 +30,7 @@ class CreateExpense extends CreateRecord
     {
         $record = new ($this->getModel())($data);
         $record->shouldCreateSingleItem = $this->shouldCreateSingleExpenseItem;
+        $record->singleItemConcept = $this->singleItemConcept;
 
         if ($parentRecord = $this->getParentRecord()) {
             return $this->associateRecordWithParent($record, $parentRecord);
