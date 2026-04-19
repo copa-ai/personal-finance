@@ -16,6 +16,7 @@ class Expense extends Model implements Commentable
     use HasUuids;
 
     public bool $shouldCreateSingleItem = false;
+    public ?string $singleItemConcept = null;
 
     public $timestamps = false;
 
