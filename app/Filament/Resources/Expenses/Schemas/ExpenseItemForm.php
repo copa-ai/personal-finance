@@ -87,7 +87,9 @@ class ExpenseItemForm
             $productSelect
                 ->searchable()
                 ->preload()
-                ->options(fn (): array => Product::query()->orderBy('name')->pluck('name', 'id')->all());
+                ->options(fn (): array => Product::query()->orderBy('name')->pluck('name', 'id')->all())
+                ->createOptionForm(ProductForm::components())
+                ->editOptionForm(ProductForm::components());
         } else {
             $productSelect
                 ->relationship('product', 'name')
