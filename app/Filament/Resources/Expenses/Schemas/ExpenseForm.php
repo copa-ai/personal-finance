@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Expenses\Schemas;
 use App\Enums\ExpenseStatus;
 use App\Models\Expense;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Group;
+use Filament\Schema\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
