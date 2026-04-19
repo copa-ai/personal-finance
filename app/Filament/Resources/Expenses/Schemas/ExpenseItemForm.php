@@ -182,6 +182,9 @@ class ExpenseItemForm
                         }),
                 ]),
             Section::make('Clasificación y Fechas')
+                ->description("Únicamente sirve para hacer estadisticas")
+                ->collapsible()
+                ->collapsed()
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema([
