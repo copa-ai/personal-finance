@@ -12,6 +12,7 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use App\Models\Product;
 
 class ExpenseForm
 {
