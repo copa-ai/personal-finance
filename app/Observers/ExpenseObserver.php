@@ -19,9 +19,13 @@ class ExpenseObserver
             return;
         }
 
+        # Si el concepto equivale a un producto ya creado en DB se asocia, si no queda vacio.
+        $product = Product::where('name', $expense->singleItemConcept)->first();
+
         ExpenseItem::create([
+            'product_id' => $product?->id,
             'expense_id' => $expense->id,
-            'concept' => $expense->establishment,
+            'concept' => $expense->singleItemConcept,
             'quantity' => 1,
             'unit_price' => $expense->total,
             'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,

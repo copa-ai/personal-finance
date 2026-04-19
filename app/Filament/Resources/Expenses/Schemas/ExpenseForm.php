@@ -82,6 +82,12 @@ class ExpenseForm
                             return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
                         })
                         ->columnSpanFull(),
+                    TextInput::make('singleItemConcept')
+                        ->label('Concepto del subgasto único')
+                        ->helperText('Específica el concepto del subgasto que se creará automáticamente con el importe total del gasto.')
+                        ->dehydrated(false)
+                        ->visible(fn (Get $get): bool => (bool) $get('create_single_item'))
+                        ->datalist(fn() => Product::pluck('name')->toArray()),
                     \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
                         ->label('Foto del Ticket')
                         ->image()
