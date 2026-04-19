@@ -63,6 +63,7 @@ class ExpenseItemForm
     public static function components(bool $includeExpenseField = false, ?string $statePath = null): array
     {
         $conceptSectionSchema = [];
+        $isEmbedded = filled($statePath);
 
         if ($includeExpenseField) {
             $conceptSectionSchema[] = Select::make('expense_id')
@@ -73,22 +74,33 @@ class ExpenseItemForm
                 ->required();
         }
 
-        if (filled($statePath)) {
+        if ($isEmbedded) {
             $conceptSectionSchema[] = Hidden::make('concept_manually_set')
                 ->default(false);
         }
 
-        $conceptSectionSchema[] = Select::make('product_id')
-            ->relationship('product', 'name')
+        $productSelect = Select::make('product_id')
             ->label('Producto Base')
-            ->live()
-            ->createOptionForm(ProductForm::components())
-            ->editOptionForm(ProductForm::components());
+            ->live();
+
+        if ($isEmbedded) {
+            $productSelect
+                ->searchable()
+                ->preload()
+                ->options(fn (): array => Product::query()->orderBy('name')->pluck('name', 'id')->all());
+        } else {
+            $productSelect
+                ->relationship('product', 'name')
+                ->createOptionForm(ProductForm::components())
+                ->editOptionForm(ProductForm::components());
+        }
+
+        $conceptSectionSchema[] = $productSelect;
         $conceptSectionSchema[] = TextInput::make('concept')
             ->label('Concepto')
             ->columnSpanFull()
-            ->afterStateUpdated(static function (Set $set, mixed $state) use ($statePath): void {
-                if (! filled($statePath)) {
+            ->afterStateUpdated(static function (Set $set, mixed $state) use ($isEmbedded): void {
+                if (! $isEmbedded) {
                     return;
                 }
 
