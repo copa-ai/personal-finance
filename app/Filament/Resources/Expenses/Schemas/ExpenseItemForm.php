@@ -7,6 +7,7 @@ use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
 use App\Models\Product;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
@@ -59,7 +60,7 @@ class ExpenseItemForm
         return $unit;
     }
 
-    public static function components(bool $includeExpenseField = false): array
+    public static function components(bool $includeExpenseField = false, ?string $statePath = null): array
     {
         $conceptSectionSchema = [];
 
@@ -72,6 +73,11 @@ class ExpenseItemForm
                 ->required();
         }
 
+        if (filled($statePath)) {
+            $conceptSectionSchema[] = Hidden::make('concept_manually_set')
+                ->default(false);
+        }
+
         $conceptSectionSchema[] = Select::make('product_id')
             ->relationship('product', 'name')
             ->label('Producto Base')
@@ -80,7 +86,14 @@ class ExpenseItemForm
             ->editOptionForm(ProductForm::components());
         $conceptSectionSchema[] = TextInput::make('concept')
             ->label('Concepto')
-            ->columnSpanFull();
+            ->columnSpanFull()
+            ->afterStateUpdated(static function (Set $set, mixed $state) use ($statePath): void {
+                if (! filled($statePath)) {
+                    return;
+                }
+
+                $set('concept_manually_set', filled($state));
+            });
         $conceptSectionSchema[] = TagsInput::make('tags')
             ->label('Etiquetas')
             ->columnSpanFull();
@@ -99,7 +112,7 @@ class ExpenseItemForm
                         ->required()
                         ->numeric()
                         ->default(1)
-                        ->reactive()
+                        ->live()
                         ->afterStateUpdated(static function (Set $set, Get $get): void {
                             $quantity = self::parseNumeric($get('quantity'));
                             $unitPrice = self::parseNumeric($get('unit_price'));
@@ -122,7 +135,7 @@ class ExpenseItemForm
                         ->numeric()
                         ->prefix('€')
                         ->dehydrated(false)
-                        ->reactive()
+                        ->live()
                         ->afterStateHydrated(static function (Set $set, Get $get, mixed $state): void {
                             if (filled($state)) {
                                 return;
@@ -162,7 +175,7 @@ class ExpenseItemForm
 
                             return filled($unit) ? ('/' . $unit) : null;
                         })
-                        ->reactive()
+                        ->live()
                         ->afterStateUpdated(static function (Set $set, Get $get): void {
                             $quantity = self::parseNumeric($get('quantity'));
                             $unitPrice = self::parseNumeric($get('unit_price'));

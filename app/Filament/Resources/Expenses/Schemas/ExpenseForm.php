@@ -5,13 +5,16 @@ namespace App\Filament\Resources\Expenses\Schemas;
 use App\Enums\ExpenseStatus;
 use App\Models\Expense;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use \Filament\Forms\Components\FileUpload;
 
 class ExpenseForm
 {
@@ -48,7 +51,19 @@ class ExpenseForm
                 ->schema([
                     TextInput::make('establishment')
                         ->label('Establecimiento')
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(static function (Set $set, Get $get, mixed $state): void {
+                            if (! $get('create_single_item')) {
+                                return;
+                            }
+
+                            if ($get('single_item.concept_manually_set')) {
+                                return;
+                            }
+
+                            $set('single_item.concept', $state);
+                        }),
                     DateTimePicker::make('date')
                         ->label('Fecha y Hora')
                         ->default(now())
@@ -57,7 +72,24 @@ class ExpenseForm
                         ->label('Total (€)')
                         ->numeric()
                         ->prefix('€')
-                        ->required(fn (Get $get): bool => (bool) $get('create_single_item')),
+                        ->required(fn (Get $get): bool => (bool) $get('create_single_item'))
+                        ->live()
+                        ->afterStateUpdated(static function (Set $set, Get $get, mixed $state): void {
+                            if (! $get('create_single_item')) {
+                                return;
+                            }
+
+                            $quantity = $get('single_item.quantity');
+                            $quantity = is_numeric((string) $quantity) && ((float) $quantity > 0) ? (float) $quantity : 1.0;
+                            $total = is_numeric((string) $state) ? (float) str_replace(',', '.', (string) $state) : null;
+
+                            if ($total === null) {
+                                return;
+                            }
+
+                            $set('single_item.total_price', number_format($total, 2, '.', ''));
+                            $set('single_item.unit_price', number_format($total / $quantity, 2, '.', ''));
+                        }),
                     Select::make('status')
                         ->label('Estado')
                         ->options(ExpenseStatus::class)
@@ -81,8 +113,34 @@ class ExpenseForm
 
                             return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
                         })
+                        ->live()
+                        ->afterStateUpdated(static function (Set $set, Get $get, mixed $state): void {
+                            if (! $state) {
+                                $set('single_item', null);
+
+                                return;
+                            }
+
+                            $establishment = $get('establishment');
+                            $total = $get('total');
+                            $quantity = $get('single_item.quantity');
+                            $quantity = is_numeric((string) $quantity) && ((float) $quantity > 0) ? (float) $quantity : 1.0;
+                            $total = is_numeric((string) $total) ? (float) str_replace(',', '.', (string) $total) : 0.0;
+
+                            $set('single_item.quantity', number_format($quantity, 3, '.', ''));
+                            $set('single_item.total_price', number_format($total, 2, '.', ''));
+                            $set('single_item.unit_price', number_format($total / $quantity, 2, '.', ''));
+                            $set('single_item.item_type', 'VARIABLE_IRREGULAR');
+                            $set('single_item.recurrence', 'NONE');
+                            $set('single_item.is_consumable', true);
+                            $set('single_item.concept_manually_set', filled($get('single_item.concept')));
+
+                            if (! $get('single_item.concept_manually_set')) {
+                                $set('single_item.concept', $establishment);
+                            }
+                        })
                         ->columnSpanFull(),
-                    \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
+                    FileUpload::make('ticket_photo_hash')
                         ->label('Foto del Ticket')
                         ->image()
                         ->directory('tickets')
@@ -100,6 +158,11 @@ class ExpenseForm
                             'capture' => 'environment', // 'user' = cámara frontal, 'environment' = trasera
                         ])
                         ->disk('local'),
+                    Group::make()
+                        ->schema(ExpenseItemForm::components(statePath: 'single_item'))
+                        ->statePath('single_item')
+                        ->visible(fn (Get $get): bool => (bool) $get('create_single_item'))
+                        ->columnSpanFull(),
                 ]),
         ];
     }
