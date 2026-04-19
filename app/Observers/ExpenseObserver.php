@@ -6,6 +6,7 @@ use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
 use App\Models\Expense;
 use App\Models\ExpenseItem;
+use App\Models\Product;
 
 class ExpenseObserver
 {
