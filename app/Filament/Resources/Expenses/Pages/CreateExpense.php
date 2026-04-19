@@ -11,6 +11,7 @@ class CreateExpense extends CreateRecord
     protected static string $resource = ExpenseResource::class;
 
     protected bool $shouldCreateSingleExpenseItem = false;
+    protected ?string $singleItemConcept = null;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
