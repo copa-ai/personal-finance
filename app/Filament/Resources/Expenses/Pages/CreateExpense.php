@@ -18,10 +18,8 @@ class CreateExpense extends CreateRecord
         $this->shouldCreateSingleExpenseItem = (bool) ($data['create_single_item'] ?? false);
         unset($data['create_single_item']);
 
-        \Log::info('Single item concept before create', ['concept' => $data['singleItemConcept'] ?? null]);
         $this->singleItemConcept = $data['singleItemConcept'] ?? null;
         unset($data['singleItemConcept']);
-        \Log::info('Single item concept after create', ['concept' => $this->singleItemConcept]);
 
         return $data;
     }

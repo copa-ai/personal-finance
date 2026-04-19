@@ -12,7 +12,6 @@ class ExpenseObserver
 {
     public function created(Expense $expense): void
     {
-        \Log::info('Expense object is: ', ['expense' => $expense->toArray()]);
         if (! $expense->shouldCreateSingleItem) {
             return;
         }
