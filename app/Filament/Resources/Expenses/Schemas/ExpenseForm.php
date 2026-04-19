@@ -81,7 +81,7 @@ class ExpenseForm
 
                             return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
                         })
-                        ->live()
+                        ->reactive()
                         ->columnSpanFull(),
                     TextInput::make('singleItemConcept')
                         ->label('Concepto del subgasto único')
