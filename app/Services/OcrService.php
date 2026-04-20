@@ -99,7 +99,16 @@ class OcrService
             ]);
 
             // Codificar imagen en base64
-            $imageBase64 = base64_encode($contents);
+            $cmd = sprintf(
+                'base64 -w 0 %s',
+                escapeshellarg($absolutePath)
+            );
+
+            $imageBase64 = trim(shell_exec($cmd));
+
+            if (empty($imageBase64)) {
+                throw new RuntimeException('Error generando base64 con comando del sistema');
+            }
             $base64Length = strlen($imageBase64);
 
             Log::debug(self::LOG_PREFIX . ' Imagen codificada en base64', [
