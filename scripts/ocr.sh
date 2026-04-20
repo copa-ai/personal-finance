@@ -24,7 +24,7 @@ fi
 
 OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
-OCR_PROMPT='Analyze the receipt image and extract all product line items. Return ONLY valid JSON with this structure: {"items":[{"concept":string,"quantity":number,"unit_price":number}]}. Rules: concept must be clean text; quantity MUST exist (use 1 if missing, must be >0); unit_price must be a number >=0 using dot as decimal (e.g. 15.95); ignore totals, taxes and non-product lines; do not include extra fields; do not return nulls; if no products return {"items":[]}; output raw JSON only without markdown.'
+OCR_PROMPT='Analyze receipt and return JSON with items array containing concept, quantity (default 1), and unit_price. Only raw JSON. No extra text.'
 
 # 1. Creamos un archivo temporal para la imagen con extensión .png
 TMP_IMG=$(mktemp --suffix=.png)
@@ -45,8 +45,9 @@ IMG="$(base64 -w 0 "$TMP_IMG")"
 # Creamos un archivo temporal para el payload JSON
 TMP_PAYLOAD=$(mktemp)
 
+ESCAPED_PROMPT=$(printf '%s' "$OCR_PROMPT" | sed 's/\\/\\\\/g; s/"/\\"/g')
 printf '{"model":"%s","prompt":"%s","images":["%s"],"stream":false}' \
-  "$OCR_MODEL" "$OCR_PROMPT" "$IMG" > "$TMP_PAYLOAD"
+  "$OCR_MODEL" "$ESCAPED_PROMPT" "$IMG" > "$TMP_PAYLOAD"
 
 # Enviamos el archivo temporal con curl usando -d @
 curl -s "$OCR_URL" \
