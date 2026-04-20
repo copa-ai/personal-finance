@@ -70,32 +70,32 @@ class OcrService
 
         return 0;
 
-        $expenseId = $expense->id;
+        // $expenseId = $expense->id;
 
-        Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
-            'expense_id' => $expenseId,
-        ]);
+        // Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
+        //     'expense_id' => $expenseId,
+        // ]);
 
-        try {
-            $items = $this->extractTicketItems($expense);
-            $count = $this->importExpenseItems($expense, $items);
+        // try {
+        //     $items = $this->extractTicketItems($expense);
+        //     $count = $this->importExpenseItems($expense, $items);
 
-            Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
-                'expense_id' => $expenseId,
-                'imported_count' => $count,
-            ]);
+        //     Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
+        //         'expense_id' => $expenseId,
+        //         'imported_count' => $count,
+        //     ]);
 
-            return $count;
+        //     return $count;
 
-        } catch (Exception $e) {
-            Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
-                'expense_id' => $expenseId,
-                'error_message' => $e->getMessage(),
-                'error_class' => get_class($e),
-            ]);
+        // } catch (Exception $e) {
+        //     Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
+        //         'expense_id' => $expenseId,
+        //         'error_message' => $e->getMessage(),
+        //         'error_class' => get_class($e),
+        //     ]);
 
-            throw $e;
-        }
+        //     throw $e;
+        // }
     }
 
     /**
