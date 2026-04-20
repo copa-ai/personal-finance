@@ -138,37 +138,18 @@ class OcrService
         ]);
 
         try {
-            $ticketPath = $expense->ticket_photo_hash;
+            $ticketHash = trim((string) $expense->ticket_photo_hash);
 
-            if (blank($ticketPath)) {
+            if ($ticketHash === '') {
                 Log::error(self::LOG_PREFIX . ' El gasto no tiene foto de ticket', [
                     'expense_id' => $expenseId,
                 ]);
                 throw new RuntimeException('El gasto no tiene foto de ticket.');
             }
 
-            Log::debug(self::LOG_PREFIX . ' Ruta del ticket', [
+            Log::debug(self::LOG_PREFIX . ' Hash del ticket', [
                 'expense_id' => $expenseId,
-                'ticket_path' => $ticketPath,
-            ]);
-
-            if (!Storage::disk('local')->exists($ticketPath)) {
-                Log::error(self::LOG_PREFIX . ' Fichero de ticket no encontrado en storage', [
-                    'expense_id' => $expenseId,
-                    'ticket_path' => $ticketPath,
-                    'storage_disk' => 'local',
-                ]);
-                throw new RuntimeException('No se encontró el fichero del ticket en storage.');
-            }
-
-            $absolutePath = Storage::disk('local')->path($ticketPath);
-
-            if (!is_file($absolutePath) || !is_readable($absolutePath)) {
-                Log::error(self::LOG_PREFIX . ' Fichero de ticket no accesible', [
-                    'expense_id' => $expenseId,
-                    'absolute_path' => $absolutePath,
-                ]);
-                throw new RuntimeException('No se pudo acceder al fichero del ticket en storage.');
+                'ticket_hash' => $ticketHash,
             }
 
             $scriptPath = base_path('scripts/ocr.sh');
@@ -189,19 +170,23 @@ class OcrService
                 throw new RuntimeException("El script OCR no es ejecutable: {$scriptPath}.");
             }
 
-            $fileSize = @filesize($absolutePath);
+            $absolutePath = Storage::disk('local')->path($ticketHash);
+            $fileExists = Storage::disk('local')->exists($ticketHash);
+            $fileSize = $fileExists ? @filesize($absolutePath) : false;
             $fileSizeValue = $fileSize !== false ? $fileSize : 0;
 
-            Log::debug(self::LOG_PREFIX . ' Información del fichero', [
+            Log::debug(self::LOG_PREFIX . ' Información del ticket', [
                 'expense_id' => $expenseId,
-                'absolute_path' => $absolutePath,
+                'ticket_hash' => $ticketHash,
+                'resolved_path' => $absolutePath,
+                'file_exists' => $fileExists,
                 'file_size_bytes' => $fileSizeValue,
                 'file_size_mb' => round($fileSizeValue / 1024 / 1024, 2),
                 'script_path' => $scriptPath,
             ]);
 
             $processStartTime = microtime(true);
-            $command = sprintf('%s %s', escapeshellarg($scriptPath), escapeshellarg($absolutePath));
+            $command = sprintf('%s %s', escapeshellarg($scriptPath), escapeshellarg($ticketHash));
 
             Log::info(self::LOG_PREFIX . ' Ejecutando script OCR', [
                 'expense_id' => $expenseId,
@@ -282,7 +267,7 @@ class OcrService
             'content_length' => strlen($content),
         ]);
 
-        $decoded = $this->decodeJsonFromContent($content, $expenseId);
+        $decoded = $this->decodeOcrPayload($content, $expenseId);
 
         $items = isset($decoded['items']) ? $decoded['items'] : null;
 
@@ -311,7 +296,7 @@ class OcrService
                 continue;
             }
 
-            $conceptRaw = isset($item['concept']) ? $item['concept'] : '';
+            $conceptRaw = $item['concept'] ?? $item['name'] ?? '';
             $concept = trim((string) $conceptRaw);
             if (function_exists('mb_substr')) {
                 $concept = mb_substr($concept, 0, 255);
@@ -319,8 +304,8 @@ class OcrService
                 $concept = substr($concept, 0, 255);
             }
 
-            $quantityRaw = isset($item['quantity']) ? $item['quantity'] : null;
-            $unitPriceRaw = isset($item['unit_price']) ? $item['unit_price'] : null;
+            $quantityRaw = $item['quantity'] ?? null;
+            $unitPriceRaw = $item['unit_price'] ?? $item['price'] ?? null;
 
             $quantity = $this->parseDecimal($quantityRaw);
             $unitPrice = $this->parseDecimal($unitPriceRaw);
@@ -386,6 +371,43 @@ class OcrService
         ]);
 
         return $normalized;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeOcrPayload(string $content, $expenseId = null): array
+    {
+        $outerDecoded = json_decode(trim($content), true);
+
+        if (!is_array($outerDecoded)) {
+            Log::error(self::LOG_PREFIX . ' La salida del script OCR no es JSON válido', [
+                'expense_id' => $expenseId,
+                'content_preview' => $this->trimForError($content),
+                'json_error' => json_last_error_msg(),
+            ]);
+            throw new RuntimeException('La salida del script OCR no contiene un JSON válido.');
+        }
+
+        Log::debug(self::LOG_PREFIX . ' Payload OCR decodificado', [
+            'expense_id' => $expenseId,
+            'payload_keys' => array_keys($outerDecoded),
+            'done' => $outerDecoded['done'] ?? null,
+            'done_reason' => $outerDecoded['done_reason'] ?? null,
+        ]);
+
+        $response = $outerDecoded['response'] ?? null;
+
+        if (!is_string($response) || trim($response) === '') {
+            Log::error(self::LOG_PREFIX . ' El payload OCR no contiene un campo response válido', [
+                'expense_id' => $expenseId,
+                'payload_keys' => array_keys($outerDecoded),
+                'response_type' => gettype($response),
+            ]);
+            throw new RuntimeException('La respuesta del OCR no contiene el campo "response" esperado.');
+        }
+
+        return $this->decodeJsonFromContent($response, $expenseId);
     }
 
     private function prompt(): string
@@ -712,13 +734,23 @@ class OcrService
             'content_preview' => $this->trimForError($content),
         ]);
 
-        // Paso 0: Manejar el wrapper {"text": "..."} de glm-ocr
+        // Paso 0: Manejar wrappers tipo {"text": "..."} o {"response": "..."}
         $wrapperDecoded = json_decode($content, true);
-        if (is_array($wrapperDecoded) && isset($wrapperDecoded['text']) && is_string($wrapperDecoded['text'])) {
-            Log::debug(self::LOG_PREFIX . ' Detectado wrapper {"text": "..."}, extrayendo contenido', [
-                'expense_id' => $expenseId,
-            ]);
-            $content = trim($wrapperDecoded['text']);
+        if (is_array($wrapperDecoded)) {
+            $wrappedContent = null;
+
+            if (isset($wrapperDecoded['text']) && is_string($wrapperDecoded['text'])) {
+                $wrappedContent = $wrapperDecoded['text'];
+            } elseif (isset($wrapperDecoded['response']) && is_string($wrapperDecoded['response'])) {
+                $wrappedContent = $wrapperDecoded['response'];
+            }
+
+            if (is_string($wrappedContent)) {
+                Log::debug(self::LOG_PREFIX . ' Detectado wrapper JSON con contenido embebido, extrayendo texto', [
+                    'expense_id' => $expenseId,
+                ]);
+                $content = trim($wrappedContent);
+            }
         }
 
         // Intento 1: JSON directo
@@ -861,6 +893,12 @@ class OcrService
         }
 
         $value = str_replace([' ', "\t", "\n", "\r"], '', $value);
+        $value = preg_replace('/[^\d,.\-]/', '', $value);
+
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
         $value = str_replace(',', '.', $value);
 
         if (!is_numeric($value)) {
