@@ -1,0 +1,16 @@
+{
+    "name": "Laravel",
+    "short_name": "Finance",
+    "background_color": "#008000",
+    "display": "fullscreen",
+    "description": "Personal Finance Management Application",
+    "theme_color": "#008000",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
