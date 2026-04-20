@@ -55,7 +55,10 @@ class OcrService
     public function importExpenseItemsFromTicketOcr(Expense $expense): int
     {
 
+        \Log::debug("EJECUCIÓN DE CURL DESDE PHP");
         \Log::debug($this->ejecutarCurl());
+
+        return 0;
 
         $expenseId = $expense->id;
 
