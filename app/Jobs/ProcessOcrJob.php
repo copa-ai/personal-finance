@@ -22,6 +22,7 @@ class ProcessOcrJob implements ShouldQueue
 
     public function __construct(public string $ocrJobId)
     {
+        \Log::info($ocrJobId);
     }
 
     public function handle(OcrService $ocrService): void
