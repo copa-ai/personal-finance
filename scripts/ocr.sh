@@ -22,7 +22,7 @@ if [[ ! -f "$TICKET_PATH" ]]; then
   exit 1
 fi
 
-OCR_URL="${OCR_OLLAMA_URL:-http://localhost:11434/api/generate}"
+OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
 OCR_PROMPT='Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.'
 
