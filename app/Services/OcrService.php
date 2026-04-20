@@ -27,38 +27,44 @@ class OcrService
 
     public function ejecutarCurl()
     {
-        // $imgBase64 = base64_encode(file_get_contents("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg"));
+        $imagePath = "storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg";
 
-        // Codificar imagen en base64
-        $cmd = sprintf(
-            'base64 -w 0 %s',
-            escapeshellarg("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg")
-        );
+        // 1. Codificar la imagen a base64
+        $cmdBase64 = sprintf('base64 -w 0 %s', escapeshellarg($imagePath));
+        $imgBase64 = trim(shell_exec($cmdBase64));
 
-        $imgBase64 = trim(shell_exec($cmd));
-
-        $command = [
-            'curl',
-            'http://172.17.0.1:11434/api/generate',
-            '-H', 'Content-Type: application/json',
-            '-H', 'Expect:',
-            '-d',
-            json_encode([
-                'model' => 'glm-ocr',
-                'prompt' => 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.',
-                'images' => [$imgBase64],
-                'stream' => false
-            ])
-        ];
-
-        $process = new Process($command);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
+        if (empty($imgBase64)) {
+            throw new \Exception("Error: No se pudo leer o codificar la imagen en base64.");
         }
 
-        return response($process->getOutput());
+        // 2. Preparar el JSON para enviar a Ollama
+        $data = [
+            'model'   => 'glm-ocr',
+            'prompt'  => 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.',
+            'images'  => [$imgBase64],
+            'stream'  => false
+        ];
+
+        $jsonPayload = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        // 3. Construir el comando curl completo
+        $curlCommand = sprintf(
+            'curl -s -X POST http://172.17.0.1:11434/api/generate ' .
+            '-H "Content-Type: application/json" ' .
+            '-H "Expect:" ' .
+            '-d %s',
+            escapeshellarg($jsonPayload)
+        );
+
+        // 4. Ejecutar con shell_exec
+        $output = shell_exec($curlCommand);
+
+        if ($output === null) {
+            throw new \Exception("Error al ejecutar curl: No se obtuvo respuesta.");
+        }
+
+        // 5. Retornar la respuesta
+        return response($output);
     }
 
     public function importExpenseItemsFromTicketOcr(Expense $expense): int
