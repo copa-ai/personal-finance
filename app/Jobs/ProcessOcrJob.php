@@ -26,6 +26,7 @@ class ProcessOcrJob implements ShouldQueue
 
     public function handle(OcrService $ocrService): void
     {
+        \Log::info("1");
         $ocrJob = OcrJob::query()
             ->with(['expense', 'user'])
             ->findOrFail($this->ocrJobId);
@@ -34,6 +35,7 @@ class ProcessOcrJob implements ShouldQueue
             return;
         }
 
+        \Log::info("2");
         $ocrJob->forceFill([
             'started_at' => now(),
             'model' => $ocrService->getOcrModel(),
@@ -41,6 +43,8 @@ class ProcessOcrJob implements ShouldQueue
 
         try {
             $expense = $ocrJob->expense;
+
+            \Log::info("3");
 
             if (!$expense) {
                 throw new \RuntimeException('El gasto asociado al OCR ya no existe.');
@@ -50,6 +54,8 @@ class ProcessOcrJob implements ShouldQueue
                 throw new \RuntimeException('Este gasto ya tiene líneas. Borra las líneas antes de ejecutar OCR.');
             }
 
+            \Log::info("4");
+            \Log::info(json_encode($expense));
             $count = $ocrService->importExpenseItemsFromTicketOcr($expense);
 
             $ocrJob->forceFill([
