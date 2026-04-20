@@ -1,5 +1,7 @@
 FROM php:8.4-cli
 
+# Imagemagick solo necesario en scripts/ocr.sh
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
