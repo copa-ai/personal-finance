@@ -25,64 +25,34 @@ class OcrService
         return $this->ocrModel();
     }
 
-    public function ejecutarCurl()
-    {
-        // Ruta al script bash
-        $scriptPath = base_path('scripts/ocr.sh');
-
-        if (!file_exists($scriptPath)) {
-            throw new \Exception("El script no existe en: {$scriptPath}");
-        }
-
-        // Asegurar permisos de ejecución (opcional pero útil)
-        @chmod($scriptPath, 0755);
-
-        // Ejecutar el script
-        $cmd = sprintf('bash %s 2>&1', escapeshellarg($scriptPath));
-        $output = shell_exec($cmd);
-
-        if ($output === null) {
-            throw new \Exception("Error al ejecutar el script bash.");
-        }
-
-        return response($output);
-    }
-
     public function importExpenseItemsFromTicketOcr(Expense $expense): int
     {
+        $expenseId = $expense->id;
 
-        \Log::info("INICIANDO EJECUCIÓN DE CURL DESDE PHP");
-        \Log::debug("EJECUCIÓN DE CURL DESDE PHP");
-        \Log::debug($this->ejecutarCurl());
+        Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
+            'expense_id' => $expenseId,
+        ]);
 
-        return 0;
+        try {
+            $items = $this->extractTicketItems($expense);
+            $count = $this->importExpenseItems($expense, $items);
 
-        // $expenseId = $expense->id;
+            Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
+                'expense_id' => $expenseId,
+                'imported_count' => $count,
+            ]);
 
-        // Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
-        //     'expense_id' => $expenseId,
-        // ]);
+            return $count;
 
-        // try {
-        //     $items = $this->extractTicketItems($expense);
-        //     $count = $this->importExpenseItems($expense, $items);
+        } catch (Exception $e) {
+            Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
+                'expense_id' => $expenseId,
+                'error_message' => $e->getMessage(),
+                'error_class' => get_class($e),
+            ]);
 
-        //     Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
-        //         'expense_id' => $expenseId,
-        //         'imported_count' => $count,
-        //     ]);
-
-        //     return $count;
-
-        // } catch (Exception $e) {
-        //     Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
-        //         'expense_id' => $expenseId,
-        //         'error_message' => $e->getMessage(),
-        //         'error_class' => get_class($e),
-        //     ]);
-
-        //     throw $e;
-        // }
+            throw $e;
+        }
     }
 
     /**
@@ -163,12 +133,11 @@ class OcrService
 
         Log::info(self::LOG_PREFIX . ' Iniciando extracción OCR', [
             'expense_id' => $expenseId,
-            'expense_amount' => $expense->amount,
+            'expense_total' => $expense->total,
             'timestamp' => now()->toISOString(),
         ]);
 
         try {
-            // Validar ticket path
             $ticketPath = $expense->ticket_photo_hash;
 
             if (blank($ticketPath)) {
@@ -183,7 +152,6 @@ class OcrService
                 'ticket_path' => $ticketPath,
             ]);
 
-            // Verificar existencia del archivo
             if (!Storage::disk('local')->exists($ticketPath)) {
                 Log::error(self::LOG_PREFIX . ' Fichero de ticket no encontrado en storage', [
                     'expense_id' => $expenseId,
@@ -194,6 +162,33 @@ class OcrService
             }
 
             $absolutePath = Storage::disk('local')->path($ticketPath);
+
+            if (!is_file($absolutePath) || !is_readable($absolutePath)) {
+                Log::error(self::LOG_PREFIX . ' Fichero de ticket no accesible', [
+                    'expense_id' => $expenseId,
+                    'absolute_path' => $absolutePath,
+                ]);
+                throw new RuntimeException('No se pudo acceder al fichero del ticket en storage.');
+            }
+
+            $scriptPath = base_path('scripts/ocr.sh');
+
+            if (!is_file($scriptPath)) {
+                Log::error(self::LOG_PREFIX . ' Script OCR no encontrado', [
+                    'expense_id' => $expenseId,
+                    'script_path' => $scriptPath,
+                ]);
+                throw new RuntimeException("No se encontró el script OCR en {$scriptPath}.");
+            }
+
+            if (!is_executable($scriptPath)) {
+                Log::error(self::LOG_PREFIX . ' Script OCR sin permisos de ejecución', [
+                    'expense_id' => $expenseId,
+                    'script_path' => $scriptPath,
+                ]);
+                throw new RuntimeException("El script OCR no es ejecutable: {$scriptPath}.");
+            }
+
             $fileSize = @filesize($absolutePath);
             $fileSizeValue = $fileSize !== false ? $fileSize : 0;
 
@@ -202,94 +197,52 @@ class OcrService
                 'absolute_path' => $absolutePath,
                 'file_size_bytes' => $fileSizeValue,
                 'file_size_mb' => round($fileSizeValue / 1024 / 1024, 2),
+                'script_path' => $scriptPath,
             ]);
 
-            // Leer contenido del archivo
-            $readStartTime = microtime(true);
-            $contents = @file_get_contents($absolutePath);
-            $readDuration = round((microtime(true) - $readStartTime) * 1000, 2);
+            $processStartTime = microtime(true);
+            $command = sprintf('%s %s', escapeshellarg($scriptPath), escapeshellarg($absolutePath));
 
-            if ($contents === false) {
-                $lastError = error_get_last();
-                $errorMessage = isset($lastError['message']) ? $lastError['message'] : 'Error desconocido';
+            Log::info(self::LOG_PREFIX . ' Ejecutando script OCR', [
+                'expense_id' => $expenseId,
+                'command' => $command,
+                'model' => $this->ocrModel(),
+                'url' => $this->generateUrl(),
+            ]);
 
-                Log::error(self::LOG_PREFIX . ' No se pudo leer el fichero del ticket', [
-                    'expense_id' => $expenseId,
-                    'absolute_path' => $absolutePath,
-                    'error' => $errorMessage,
-                ]);
-                throw new RuntimeException('No se pudo leer el fichero del ticket.');
+            $result = Process::path(base_path())
+                ->env([
+                    'OCR_OLLAMA_URL' => $this->generateUrl(),
+                    'OCR_OLLAMA_MODEL' => $this->ocrModel(),
+                ])
+                ->run($command);
+
+            $stdout = trim($result->output());
+            $stderr = trim($result->errorOutput());
+            $exitCode = $result->exitCode();
+            $processDuration = round((microtime(true) - $processStartTime) * 1000, 2);
+
+            Log::debug(self::LOG_PREFIX . ' Script OCR finalizado', [
+                'expense_id' => $expenseId,
+                'exit_code' => $exitCode,
+                'duration_ms' => $processDuration,
+                'stdout_preview' => $this->trimForError($stdout),
+                'stderr_preview' => $this->trimForError($stderr),
+            ]);
+
+            if ($exitCode !== 0) {
+                throw new RuntimeException(sprintf(
+                    'El script OCR falló (exit code %d): %s',
+                    $exitCode,
+                    $this->trimForError($stderr !== '' ? $stderr : $stdout)
+                ));
             }
 
-            Log::debug(self::LOG_PREFIX . ' Fichero leído correctamente', [
-                'expense_id' => $expenseId,
-                'read_duration_ms' => $readDuration,
-                'content_length' => strlen($contents),
-            ]);
-
-            // Codificar imagen en base64
-            $cmd = sprintf(
-                'base64 -w 0 %s',
-                escapeshellarg($absolutePath)
-            );
-
-            $imageBase64 = trim(shell_exec($cmd));
-
-            if (empty($imageBase64)) {
-                throw new RuntimeException('Error generando base64 con comando del sistema');
-            }
-            $base64Length = strlen($imageBase64);
-
-            Log::debug(self::LOG_PREFIX . ' Imagen codificada en base64', [
-                'expense_id' => $expenseId,
-                'base64_length' => $base64Length,
-                'base64_size_mb' => round($base64Length / 1024 / 1024, 2),
-            ]);
-
-            // Preparar payload
-            $model = $this->ocrModel();
-            $url = $this->generateUrl();
-
-            Log::info(self::LOG_PREFIX . ' Preparando petición a Ollama', [
-                'expense_id' => $expenseId,
-                'model' => $model,
-                'url' => $url,
-                'prompt_length' => strlen($this->prompt()),
-            ]);
-
-            $payload = [
-                'model' => $model,
-                'prompt' => $this->prompt(),
-                'images' => [$imageBase64],
-                'stream' => false,
-                // ELIMINADO: 'format' => 'json' - Causa el error GGML_ASSERT
-            ];
-
-            // Enviar petición
-            $response = $this->postJson($url, $payload, $expenseId);
-
-            $content = isset($response['response']) ? $response['response'] : null;
-
-            if (!is_string($content) || blank($content)) {
-                $responseKeys = is_array($response) ? array_keys($response) : [];
-                $responsePreview = $this->trimForError(json_encode($response));
-
-                Log::error(self::LOG_PREFIX . ' La respuesta del OCR no contiene contenido válido', [
-                    'expense_id' => $expenseId,
-                    'response_keys' => $responseKeys,
-                    'response_preview' => $responsePreview,
-                ]);
-                throw new RuntimeException('La respuesta del OCR no contiene contenido.');
+            if ($stdout === '') {
+                throw new RuntimeException('El script OCR no devolvió salida.');
             }
 
-            Log::debug(self::LOG_PREFIX . ' Respuesta recibida del OCR', [
-                'expense_id' => $expenseId,
-                'response_length' => strlen($content),
-                'response_preview' => $this->trimForError($content),
-            ]);
-
-            // Parsear respuesta
-            $items = $this->parseResponseContent($content, $expenseId);
+            $items = $this->parseResponseContent($stdout, $expenseId);
 
             $totalDuration = round((microtime(true) - $startTime) * 1000, 2);
 
@@ -438,39 +391,6 @@ class OcrService
     private function prompt(): string
     {
         return 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.';
-        /*return <<<'PROMPT'
-Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
-
-Devuelve ÚNICAMENTE un objeto JSON válido con este formato exacto (sin texto adicional, sin markdown, sin bloques de código, sin ninguna clave adicional):
-
-{
-  "items": [
-    {
-      "concept": "Nombre del producto o servicio",
-      "quantity": 1.0,
-      "unit_price": 0.0
-    }
-  ]
-}
-
-Reglas obligatorias:
-- "concept": El nombre completo o descripción del producto/servicio (sin incluir precio ni cantidad)
-- "quantity": Cantidad numérica del producto (si no aparece, usar 1)
-- "unit_price": Precio unitario numérico en formato decimal (si no aparece, usar 0)
-- Incluir todas las líneas visibles en el ticket
-- No incluir totales, subtotales, impuestos o información de pago
-- Usar números decimales con punto (.), no coma
-- La respuesta debe ser JSON válido sin formato markdown
-- NO envuelvas la respuesta en ninguna clave adicional como "text"
-
-Ejemplo de respuesta:
-{
-  "items": [
-    {"concept": "Pan integral", "quantity": 2, "unit_price": 1.50},
-    {"concept": "Leche entera 1L", "quantity": 1, "unit_price": 0.95}
-  ]
-}
-PROMPT;*/
     }
 
     private function generateUrl(): string
