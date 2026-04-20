@@ -28,12 +28,15 @@ OCR_PROMPT='Analiza la imagen del ticket y extrae todas las líneas de productos
 
 IMG="$(base64 -w 0 "$TICKET_PATH")"
 
-curl "$OCR_URL" \
+TMP_PAYLOAD=$(mktemp)
+
+printf '{"model":"%s","prompt":"%s","images":["%s"],"stream":false}' \
+  "$OCR_MODEL" "$OCR_PROMPT" "$IMG" > "$TMP_PAYLOAD"
+
+# 4. Enviamos el archivo temporal con curl usando -d @
+curl -s "$OCR_URL" \
   -H "Content-Type: application/json" \
-  -H "Expect:" \
-  -d "{
-    \"model\": \"${OCR_MODEL}\",
-    \"prompt\": \"${OCR_PROMPT}\",
-    \"images\": [\"${IMG}\"],
-    \"stream\": false
-  }"
+  --data-binary @"$TMP_PAYLOAD"
+
+# 5. Limpieza
+rm "$TMP_PAYLOAD"
