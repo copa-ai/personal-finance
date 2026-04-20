@@ -27,43 +27,24 @@ class OcrService
 
     public function ejecutarCurl()
     {
-        $imagePath = "storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg";
+        // Ruta al script bash
+        $scriptPath = base_path('scripts/ocr.sh');
 
-        // 1. Codificar la imagen a base64
-        $cmdBase64 = sprintf('base64 -w 0 %s', escapeshellarg($imagePath));
-        $imgBase64 = trim(shell_exec($cmdBase64));
-
-        if (empty($imgBase64)) {
-            throw new \Exception("Error: No se pudo leer o codificar la imagen en base64.");
+        if (!file_exists($scriptPath)) {
+            throw new \Exception("El script no existe en: {$scriptPath}");
         }
 
-        // 2. Preparar el JSON para enviar a Ollama
-        $data = [
-            'model'   => 'glm-ocr',
-            'prompt'  => 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.',
-            'images'  => [$imgBase64],
-            'stream'  => false
-        ];
+        // Asegurar permisos de ejecución (opcional pero útil)
+        @chmod($scriptPath, 0755);
 
-        $jsonPayload = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        // 3. Construir el comando curl completo
-        $curlCommand = sprintf(
-            'curl -s -X POST http://172.17.0.1:11434/api/generate ' .
-            '-H "Content-Type: application/json" ' .
-            '-H "Expect:" ' .
-            '-d %s',
-            escapeshellarg($jsonPayload)
-        );
-
-        // 4. Ejecutar con shell_exec
-        $output = shell_exec($curlCommand);
+        // Ejecutar el script
+        $cmd = sprintf('bash %s 2>&1', escapeshellarg($scriptPath));
+        $output = shell_exec($cmd);
 
         if ($output === null) {
-            throw new \Exception("Error al ejecutar curl: No se obtuvo respuesta.");
+            throw new \Exception("Error al ejecutar el script bash.");
         }
 
-        // 5. Retornar la respuesta
         return response($output);
     }
 
