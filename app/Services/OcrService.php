@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Illuminate\Support\Facades\Process;
 
 class OcrService
 {
@@ -26,7 +27,15 @@ class OcrService
 
     public function ejecutarCurl()
     {
-        $imgBase64 = base64_encode(file_get_contents("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg"));
+        // $imgBase64 = base64_encode(file_get_contents("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg"));
+
+        // Codificar imagen en base64
+        $cmd = sprintf(
+            'base64 -w 0 %s',
+            escapeshellarg("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg")
+        );
+
+        $imgBase64 = trim(shell_exec($cmd));
 
         $command = [
             'curl',
