@@ -24,7 +24,50 @@ fi
 
 OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
-OCR_PROMPT='Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.'
+OCR_PROMPT='''
+Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
+
+Devuelve ÚNICAMENTE un JSON válido (sin texto adicional, sin explicaciones, sin markdown) con esta estructura exacta:
+
+{
+  "items": [
+    {
+      "concept": string,
+      "quantity": number,
+      "unit_price": number
+    }
+  ]
+}
+
+Reglas obligatorias:
+
+- "concept": nombre del producto, limpio y legible.
+- "quantity": 
+  - SIEMPRE debe existir.
+  - Si no aparece en el ticket, usar 1.
+  - Debe ser un número mayor que 0.
+
+- "unit_price":
+  - Precio por unidad.
+  - Si solo aparece el precio total, usar ese valor.
+  - Debe ser un número mayor o igual a 0.
+  - Usar punto como separador decimal (ej: 15.95).
+
+- Ignorar:
+  - Totales, subtotales, impuestos, descuentos globales.
+  - Líneas que no sean productos.
+
+- No incluir campos adicionales (no "currency", no "unit", etc).
+
+- No devolver nulls.
+
+- Máxima precisión en números.
+
+- Si no se detectan productos, devolver:
+  {
+    "items": []
+  }
+'''
 
 # 1. Creamos un archivo temporal para la imagen con extensión .png
 TMP_IMG=$(mktemp --suffix=.png)
