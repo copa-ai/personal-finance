@@ -150,7 +150,7 @@ class OcrService
             Log::debug(self::LOG_PREFIX . ' Hash del ticket', [
                 'expense_id' => $expenseId,
                 'ticket_hash' => $ticketHash,
-            }
+            ]);
 
             $scriptPath = base_path('scripts/ocr.sh');
 
