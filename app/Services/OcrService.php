@@ -24,10 +24,108 @@ class OcrService
         return $this->ocrModel();
     }
 
+    public function importExpenseItemsFromTicketOcr(Expense $expense): int
+    {
+        $expenseId = $expense->id;
+
+        Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
+            'expense_id' => $expenseId,
+        ]);
+
+        try {
+            $items = $this->extractTicketItems($expense);
+            $count = $this->importExpenseItems($expense, $items);
+
+            Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
+                'expense_id' => $expenseId,
+                'imported_count' => $count,
+            ]);
+
+            return $count;
+
+        } catch (Exception $e) {
+            Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
+                'expense_id' => $expenseId,
+                'error_message' => $e->getMessage(),
+                'error_class' => get_class($e),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @param array<int, array{concept: string, quantity: string, unit_price: string}> $items
+     */
+    private function importExpenseItems(Expense $expense, array $items): int
+    {
+        $expenseId = $expense->id;
+
+        Log::info(self::LOG_PREFIX . ' Iniciando importación de items', [
+            'expense_id' => $expenseId,
+            'items_to_import' => count($items),
+        ]);
+
+        return DB::transaction(function () use ($expense, $items, $expenseId): int {
+            $expense->refresh();
+
+            if ($expense->items()->exists()) {
+                $existingCount = $expense->items()->count();
+                Log::warning(self::LOG_PREFIX . ' El gasto ya tiene líneas existentes', [
+                    'expense_id' => $expenseId,
+                    'existing_items_count' => $existingCount,
+                ]);
+                throw new RuntimeException('Este gasto ya tiene líneas. Borra las líneas antes de ejecutar OCR.');
+            }
+
+            if (empty($items)) {
+                Log::warning(self::LOG_PREFIX . ' No hay items para importar', [
+                    'expense_id' => $expenseId,
+                ]);
+                throw new RuntimeException('El OCR no devolvió ninguna línea.');
+            }
+
+            $importedCount = 0;
+            foreach ($items as $index => $item) {
+                Log::debug(self::LOG_PREFIX . ' Creando ExpenseItem', [
+                    'expense_id' => $expenseId,
+                    'item_index' => $index,
+                    'concept' => $item['concept'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                ]);
+
+                ExpenseItem::create([
+                    'expense_id' => $expense->id,
+                    'product_id' => null,
+                    'concept' => $item['concept'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'tags' => [],
+                    'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
+                    'recurrence' => Recurrence::NONE,
+                    'is_consumable' => true,
+                ]);
+
+                $importedCount++;
+            }
+
+            $expense->forceFill(['pending_review' => true])->save();
+
+            Log::info(self::LOG_PREFIX . ' Items importados correctamente', [
+                'expense_id' => $expenseId,
+                'imported_count' => $importedCount,
+                'pending_review' => true,
+            ]);
+
+            return $importedCount;
+        });
+    }
+
     /**
      * @return array<int, array{concept: string, quantity: string, unit_price: string}>
      */
-    public function extractTicketItems(Expense $expense): array
+    private function extractTicketItems(Expense $expense): array
     {
         $startTime = microtime(true);
         $expenseId = $expense->id; // Puede ser string o int
@@ -190,108 +288,10 @@ class OcrService
         }
     }
 
-    public function importExpenseItemsFromTicketOcr(Expense $expense): int
-    {
-        $expenseId = $expense->id;
-
-        Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
-            'expense_id' => $expenseId,
-        ]);
-
-        try {
-            $items = $this->extractTicketItems($expense);
-            $count = $this->importExpenseItems($expense, $items);
-
-            Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
-                'expense_id' => $expenseId,
-                'imported_count' => $count,
-            ]);
-
-            return $count;
-
-        } catch (Exception $e) {
-            Log::error(self::LOG_PREFIX . ' Error en importación desde OCR', [
-                'expense_id' => $expenseId,
-                'error_message' => $e->getMessage(),
-                'error_class' => get_class($e),
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * @param array<int, array{concept: string, quantity: string, unit_price: string}> $items
-     */
-    public function importExpenseItems(Expense $expense, array $items): int
-    {
-        $expenseId = $expense->id;
-
-        Log::info(self::LOG_PREFIX . ' Iniciando importación de items', [
-            'expense_id' => $expenseId,
-            'items_to_import' => count($items),
-        ]);
-
-        return DB::transaction(function () use ($expense, $items, $expenseId): int {
-            $expense->refresh();
-
-            if ($expense->items()->exists()) {
-                $existingCount = $expense->items()->count();
-                Log::warning(self::LOG_PREFIX . ' El gasto ya tiene líneas existentes', [
-                    'expense_id' => $expenseId,
-                    'existing_items_count' => $existingCount,
-                ]);
-                throw new RuntimeException('Este gasto ya tiene líneas. Borra las líneas antes de ejecutar OCR.');
-            }
-
-            if (empty($items)) {
-                Log::warning(self::LOG_PREFIX . ' No hay items para importar', [
-                    'expense_id' => $expenseId,
-                ]);
-                throw new RuntimeException('El OCR no devolvió ninguna línea.');
-            }
-
-            $importedCount = 0;
-            foreach ($items as $index => $item) {
-                Log::debug(self::LOG_PREFIX . ' Creando ExpenseItem', [
-                    'expense_id' => $expenseId,
-                    'item_index' => $index,
-                    'concept' => $item['concept'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                ]);
-
-                ExpenseItem::create([
-                    'expense_id' => $expense->id,
-                    'product_id' => null,
-                    'concept' => $item['concept'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'tags' => [],
-                    'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
-                    'recurrence' => Recurrence::NONE,
-                    'is_consumable' => true,
-                ]);
-
-                $importedCount++;
-            }
-
-            $expense->forceFill(['pending_review' => true])->save();
-
-            Log::info(self::LOG_PREFIX . ' Items importados correctamente', [
-                'expense_id' => $expenseId,
-                'imported_count' => $importedCount,
-                'pending_review' => true,
-            ]);
-
-            return $importedCount;
-        });
-    }
-
     /**
      * @return array<int, array{concept: string, quantity: string, unit_price: string}>
      */
-    public function parseResponseContent(string $content, $expenseId = null): array
+    private function parseResponseContent(string $content, $expenseId = null): array
     {
         Log::debug(self::LOG_PREFIX . ' Parseando contenido de respuesta', [
             'expense_id' => $expenseId,
