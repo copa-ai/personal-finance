@@ -25,9 +25,9 @@ fi
 OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
 OCR_PROMPT='''
-Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
+Analyze the receipt image and extract all product or service line items.
 
-Devuelve ÚNICAMENTE un JSON válido (sin texto adicional, sin explicaciones, sin markdown) con esta estructura exacta:
+Return ONLY valid JSON (no explanations, no extra text, no markdown) with this exact structure:
 
 {
   "items": [
@@ -39,34 +39,42 @@ Devuelve ÚNICAMENTE un JSON válido (sin texto adicional, sin explicaciones, si
   ]
 }
 
-Reglas obligatorias:
+Mandatory rules:
 
-- "concept": nombre del producto, limpio y legible.
-- "quantity": 
-  - SIEMPRE debe existir.
-  - Si no aparece en el ticket, usar 1.
-  - Debe ser un número mayor que 0.
+- "concept": clean, human-readable product name.
+
+- "quantity":
+  - MUST always be present.
+  - If not visible on the receipt, use 1.
+  - Must be a number greater than 0.
 
 - "unit_price":
-  - Precio por unidad.
-  - Si solo aparece el precio total, usar ese valor.
-  - Debe ser un número mayor o igual a 0.
-  - Usar punto como separador decimal (ej: 15.95).
+  - Price per unit.
+  - If only total price is visible, use that value.
+  - Must be a number greater than or equal to 0.
+  - Use dot as decimal separator (e.g., 15.95).
 
-- Ignorar:
-  - Totales, subtotales, impuestos, descuentos globales.
-  - Líneas que no sean productos.
+- Ignore:
+  - Totals, subtotals, taxes, global discounts.
+  - Any lines that are not actual products or services.
 
-- No incluir campos adicionales (no "currency", no "unit", etc).
+- Do NOT include extra fields (no "currency", "unit", etc).
 
-- No devolver nulls.
+- Do NOT return null values.
 
-- Máxima precisión en números.
+- Ensure all numbers are properly formatted.
 
-- Si no se detectan productos, devolver:
+- Each item must be independent (do not group products).
+
+- Correct common OCR errors in product names when possible.
+
+- If no products are found, return:
   {
     "items": []
   }
+
+IMPORTANT:
+The response must be raw JSON only. Do NOT wrap it in ```json or any code block.
 '''
 
 # 1. Creamos un archivo temporal para la imagen con extensión .png
