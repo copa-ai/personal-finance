@@ -406,7 +406,8 @@ class OcrService
 
     private function prompt(): string
     {
-        return <<<'PROMPT'
+        return 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.';
+        /*return <<<'PROMPT'
 Analiza la imagen del ticket y extrae todas las líneas de productos o servicios.
 
 Devuelve ÚNICAMENTE un objeto JSON válido con este formato exacto (sin texto adicional, sin markdown, sin bloques de código, sin ninguna clave adicional):
@@ -438,7 +439,7 @@ Ejemplo de respuesta:
     {"concept": "Leche entera 1L", "quantity": 1, "unit_price": 0.95}
   ]
 }
-PROMPT;
+PROMPT;*/
     }
 
     private function generateUrl(): string
