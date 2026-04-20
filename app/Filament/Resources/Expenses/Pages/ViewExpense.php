@@ -57,6 +57,8 @@ class ViewExpense extends ViewRecord
                         'ticket_path' => $record->ticket_photo_hash,
                     ]);
 
+                    \Log::info($ocrJob->id);
+
                     ProcessOcrJob::dispatch($ocrJob->id);
 
                     Notification::make()
