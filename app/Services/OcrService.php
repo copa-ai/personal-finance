@@ -196,6 +196,7 @@ class OcrService
             ]);
 
             $result = Process::path(base_path())
+                ->forever()
                 ->env([
                     'OCR_OLLAMA_URL' => $this->generateUrl(),
                     'OCR_OLLAMA_MODEL' => $this->ocrModel(),
