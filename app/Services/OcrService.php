@@ -24,8 +24,39 @@ class OcrService
         return $this->ocrModel();
     }
 
+    public function ejecutarCurl()
+    {
+        $imgBase64 = base64_encode(file_get_contents("storage/app/private/tickets/01KKV2B25VQ0KB40TVT5TE4N5X.jpg"));
+
+        $command = [
+            'curl',
+            'http://172.17.0.1:11434/api/generate',
+            '-H', 'Content-Type: application/json',
+            '-H', 'Expect:',
+            '-d',
+            json_encode([
+                'model' => 'glm-ocr',
+                'prompt' => 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.',
+                'images' => [$imgBase64],
+                'stream' => false
+            ])
+        ];
+
+        $process = new Process($command);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+
+        return response($process->getOutput());
+    }
+
     public function importExpenseItemsFromTicketOcr(Expense $expense): int
     {
+
+        \Log::debug($this->ejecutarCurl());
+
         $expenseId = $expense->id;
 
         Log::info(self::LOG_PREFIX . ' Iniciando importación de items desde OCR', [
