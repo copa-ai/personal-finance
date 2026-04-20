@@ -24,58 +24,7 @@ fi
 
 OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
-OCR_PROMPT='''
-Analyze the receipt image and extract all product or service line items.
-
-Return ONLY valid JSON (no explanations, no extra text, no markdown) with this exact structure:
-
-{
-  "items": [
-    {
-      "concept": string,
-      "quantity": number,
-      "unit_price": number
-    }
-  ]
-}
-
-Mandatory rules:
-
-- "concept": clean, human-readable product name.
-
-- "quantity":
-  - MUST always be present.
-  - If not visible on the receipt, use 1.
-  - Must be a number greater than 0.
-
-- "unit_price":
-  - Price per unit.
-  - If only total price is visible, use that value.
-  - Must be a number greater than or equal to 0.
-  - Use dot as decimal separator (e.g., 15.95).
-
-- Ignore:
-  - Totals, subtotals, taxes, global discounts.
-  - Any lines that are not actual products or services.
-
-- Do NOT include extra fields (no "currency", "unit", etc).
-
-- Do NOT return null values.
-
-- Ensure all numbers are properly formatted.
-
-- Each item must be independent (do not group products).
-
-- Correct common OCR errors in product names when possible.
-
-- If no products are found, return:
-  {
-    "items": []
-  }
-
-IMPORTANT:
-The response must be raw JSON only. Do NOT wrap it in ```json or any code block.
-'''
+OCR_PROMPT='Analyze the receipt image and extract all product line items. Return ONLY valid JSON with this structure: {"items":[{"concept":string,"quantity":number,"unit_price":number}]}. Rules: concept must be clean text; quantity MUST exist (use 1 if missing, must be >0); unit_price must be a number >=0 using dot as decimal (e.g. 15.95); ignore totals, taxes and non-product lines; do not include extra fields; do not return nulls; if no products return {"items":[]}; output raw JSON only without markdown.'
 
 # 1. Creamos un archivo temporal para la imagen con extensión .png
 TMP_IMG=$(mktemp --suffix=.png)
