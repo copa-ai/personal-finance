@@ -7,6 +7,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use App\Filament\Resources\Categories\Schemas\CategoryForm;
 
 class EstablishmentForm
 {
