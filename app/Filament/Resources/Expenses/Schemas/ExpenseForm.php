@@ -13,6 +13,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use App\Models\Category;
+use App\Models\Establishment;
 
 class ExpenseForm
 {
@@ -47,9 +48,12 @@ class ExpenseForm
             Section::make('Detalles del Gasto')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('establishment')
-                        ->label('Establecimiento')
-                        ->required(),
+                    Select::make('establishment_id')
+                        ->label('Establishment')
+                        ->options(fn () => Establishment::orderBy('name')->pluck('name', 'id'))
+                        ->placeholder('No establishment')
+                        ->searchable()
+                        ->nullable(),
                     DateTimePicker::make('date')
                         ->label('Fecha y Hora')
                         ->default(now())

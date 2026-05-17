@@ -25,8 +25,9 @@ class OcrJobsTable
                         OcrJobStatus::COMPLETED => 'success',
                         OcrJobStatus::FAILED => 'danger',
                     }),
-                TextColumn::make('expense.establishment')
-                    ->label('Gasto')
+                TextColumn::make('expense.establishment.name')
+                    ->label('Expense')
+                    ->formatStateUsing(fn (?string $state): string => $state ?: 'No establishment')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('expense.date')

@@ -7,16 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('establecimientos', function (Blueprint $table) {
+        Schema::create('establishments', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->string('categoria')->nullable();
+            $table->string('name');
+            // category_id references categories.id (UUID) and is nullable
+            $table->uuid('category_id')->nullable()->index();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('establecimientos');
+        Schema::dropIfExists('establishments');
     }
 };

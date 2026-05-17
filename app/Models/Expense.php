@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ExpenseStatus;
+use App\Models\Establishment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ class Expense extends Model implements Commentable
     protected ?string $subexpensesTotalCache = null;
 
     protected $fillable = [
-        'establishment',
+        'establishment_id',
         'date',
         'total',
         'status',
@@ -44,6 +45,11 @@ class Expense extends Model implements Commentable
     public function items(): HasMany
     {
         return $this->hasMany(ExpenseItem::class, 'expense_id');
+    }
+
+    public function establishment()
+    {
+        return $this->belongsTo(Establishment::class, 'establishment_id');
     }
 
     public function subexpensesTotal(): string

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Establecimientos\Schemas;
+namespace App\Filament\Resources\Establishments\Schemas;
 
 use App\Models\Category;
 use Filament\Forms\Components\Select;
@@ -8,22 +8,24 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class EstablecimientoForm
+class EstablishmentForm
 {
     public static function components(): array
     {
         return [
-            Section::make('Datos del Establecimiento')
+            Section::make('Establishment Data')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('nombre')
-                        ->label('Nombre')
+                    TextInput::make('name')
+                        ->label('Name')
                         ->required()
                         ->maxLength(150),
-                    Select::make('categoria')
-                        ->label('Categoría')
-                        ->options(fn () => Category::orderBy('name')->pluck('name', 'name'))
-                        ->searchable(),
+                    Select::make('category_id')
+                        ->label('Category')
+                        ->placeholder('No category')
+                        ->options(fn () => Category::orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->nullable(),
                 ]),
         ];
     }

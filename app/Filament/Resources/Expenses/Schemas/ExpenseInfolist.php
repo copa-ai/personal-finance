@@ -48,8 +48,9 @@ class ExpenseInfolist
                     ->schema([
                         TextEntry::make('id')
                             ->label('ID'),
-                        TextEntry::make('establishment')
-                            ->label('Establecimiento'),
+                        TextEntry::make('establishment.name')
+                            ->label('Establishment')
+                            ->formatStateUsing(fn (?string $state): string => $state ?: 'No establishment'),
                         TextEntry::make('date')
                             ->label('Fecha y Hora')
                             ->dateTime(),

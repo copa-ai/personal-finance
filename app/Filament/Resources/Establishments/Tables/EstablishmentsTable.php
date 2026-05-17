@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Establecimientos\Tables;
+namespace App\Filament\Resources\Establishments\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -9,7 +9,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class EstablecimientosTable
+class EstablishmentsTable
 {
     public static function configure(Table $table): Table
     {
@@ -18,20 +18,20 @@ class EstablecimientosTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('nombre')
-                    ->label('Nombre')
+                TextColumn::make('name')
+                    ->label('Name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('categoria')
-                    ->label('Categoría')
+                TextColumn::make('category.name')
+                    ->label('Category')
                     ->sortable(),
                 TextColumn::make('created_at')
-                    ->label('Creada')
+                    ->label('Created')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Actualizada')
+                    ->label('Updated')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

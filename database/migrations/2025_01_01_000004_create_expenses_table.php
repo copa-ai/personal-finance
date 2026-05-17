@@ -10,7 +10,9 @@ return new class extends Migration {
     {
         Schema::create('expenses', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('establishment', 150);
+            // Reference to establishment (nullable). Uses unsignedBigInteger
+            // to remain compatible with autoincrement id on establishments.
+            $table->unsignedBigInteger('establishment_id')->nullable()->index();
             $table->timestampTz('date');
             $table->decimal('total', 10, 2)->nullable();
             $table->string('ticket_photo_hash', 255)->nullable();

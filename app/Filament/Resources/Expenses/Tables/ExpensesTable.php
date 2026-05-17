@@ -26,9 +26,10 @@ class ExpensesTable
                 TextColumn::make('id')
                 ->toggleable(isToggledHiddenByDefault: true)
                     ->label('ID'),
-                TextColumn::make('establishment')
-                    ->label('Establecimiento')
+                TextColumn::make('establishment.name')
+                    ->label('Establishment')
                     ->toggleable(isToggledHiddenByDefault: false)
+                    ->formatStateUsing(fn (?string $state): string => $state ?: 'No establishment')
                     ->searchable(),
                 TextColumn::make('date')
                     ->label('Fecha y Hora')
