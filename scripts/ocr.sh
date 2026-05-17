@@ -26,12 +26,21 @@ OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
 OCR_PROMPT='Analyze receipt and return raw JSON with establishment, category, and items. establishment and category should be strings when identifiable, otherwise empty strings. items must be an array of objects with concept, quantity (default 1), and unit_price. Only raw JSON. No extra text.'
 
+if command -v magick >/dev/null 2>&1; then
+  IM_CONVERT=(magick)
+elif command -v convert >/dev/null 2>&1; then
+  IM_CONVERT=(convert)
+else
+  echo "No se encontró ImageMagick. Instala el paquete 'imagemagick' en la imagen/host antes de ejecutar OCR." >&2
+  exit 1
+fi
+
 # 1. Creamos un archivo temporal para la imagen con extensión .png
 TMP_IMG=$(mktemp --suffix=.png)
 
 # 2. Redimensionamos a 1024x1024 y rellenamos el sobrante con blanco
 # Dependiendo de tu versión de ImageMagick, el comando es 'convert' (v6) o 'magick' (v7)
-convert "$TICKET_PATH" \
+"${IM_CONVERT[@]}" "$TICKET_PATH" \
   -resize 1024x1024 \
   -background white \
   -gravity center \
