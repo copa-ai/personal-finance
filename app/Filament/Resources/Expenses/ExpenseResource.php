@@ -23,7 +23,7 @@ class ExpenseResource extends Resource
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $modelLabel = 'Gasto';
     protected static ?string $pluralModelLabel = 'Gastos';
-    protected static string|\UnitEnum|null $navigationGroup = 'Finanzas';
+    // protected static string|\UnitEnum|null $navigationGroup = 'Finanzas';
 
     public static function form(Schema $schema): Schema
     {

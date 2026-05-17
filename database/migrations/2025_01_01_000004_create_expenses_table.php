@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->decimal('total', 10, 2)->nullable();
             $table->string('ticket_photo_hash', 255)->nullable();
             $table->timestampTz('created_at')->useCurrent();
+            $table->boolean('pending_review')->default(false);
         });
 
         // Add the enum column via raw SQL since Laravel doesn't natively support PG enums in Blueprint

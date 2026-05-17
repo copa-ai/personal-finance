@@ -6,7 +6,7 @@ use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
 use App\Models\Expense;
 use App\Models\ExpenseItem;
-use App\Models\Product;
+use App\Models\Category;
 
 class ExpenseObserver
 {
@@ -20,12 +20,12 @@ class ExpenseObserver
             return;
         }
 
-        # Si el concepto equivale a un producto ya creado en DB se asocia, si no queda vacio.
-        $product = Product::where('name', $expense->singleItemConcept)->first();
+        # Si el concepto equivale a una categoría ya creada en DB se asocia, si no queda vacio.
+        $category = Category::where('name', $expense->singleItemConcept)->first();
         $units = $expense->singleItemUnits ?? 1;
 
         ExpenseItem::create([
-            'product_id' => $product?->id,
+            'category_id' => $category?->id,
             'expense_id' => $expense->id,
             'concept' => $expense->singleItemConcept,
             'quantity' => $units,

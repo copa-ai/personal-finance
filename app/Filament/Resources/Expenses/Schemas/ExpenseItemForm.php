@@ -72,12 +72,12 @@ class ExpenseItemForm
                 ->required();
         }
 
-        $conceptSectionSchema[] = Select::make('product_id')
-            ->relationship('product', 'name')
-            ->label('Producto Base')
+        $conceptSectionSchema[] = Select::make('category_id')
+            ->relationship('category', 'name')
+            ->label('Categoría')
             ->live()
-            ->createOptionForm(ProductForm::components())
-            ->editOptionForm(ProductForm::components());
+            ->createOptionForm(CategoryForm::components())
+            ->editOptionForm(CategoryForm::components());
         $conceptSectionSchema[] = TextInput::make('concept')
             ->label('Concepto')
             ->columnSpanFull();
@@ -86,7 +86,7 @@ class ExpenseItemForm
             ->columnSpanFull();
 
         return [
-            Section::make('Concepto y Producto')
+            Section::make('Concepto')
                 ->columnSpanFull()
                 ->columns(2)
                 ->schema($conceptSectionSchema),

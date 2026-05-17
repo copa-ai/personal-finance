@@ -11,7 +11,7 @@ return new class extends Migration {
         Schema::create('expense_items', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('expense_id');
-            $table->uuid('product_id')->nullable();
+            $table->uuid('category_id')->nullable();
             $table->string('concept', 255);
             $table->decimal('quantity', 10, 3)->default(1.0);
             $table->decimal('unit_price', 10, 2);
@@ -26,9 +26,9 @@ return new class extends Migration {
                 ->on('expenses')
                 ->onDelete('cascade');
 
-            $table->foreign('product_id')
+            $table->foreign('category_id')
                 ->references('id')
-                ->on('products')
+                ->on('categories')
                 ->onDelete('set null');
         });
 

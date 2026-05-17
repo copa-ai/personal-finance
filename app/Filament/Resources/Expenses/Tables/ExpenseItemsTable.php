@@ -19,8 +19,8 @@ class ExpenseItemsTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID'),
-                TextColumn::make('product.name')
-                    ->label('Producto')
+                TextColumn::make('category.name')
+                    ->label('Categoría')
                     ->searchable(),
                 TextColumn::make('concept')
                     ->label('Concepto')

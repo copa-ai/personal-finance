@@ -12,7 +12,7 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use App\Models\Product;
+use App\Models\Category;
 
 class ExpenseForm
 {
@@ -95,7 +95,7 @@ class ExpenseForm
                             return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
                         })
                         ->visible(fn (Get $get): bool => (bool) $get('create_single_item'))
-                        ->datalist(fn() => Product::pluck('name')->toArray()),
+                        ->datalist(fn() => Category::pluck('name')->toArray()),
                     TextInput::make('singleItemUnits')
                         ->label('Unidades del subgasto único')
                         ->numeric()

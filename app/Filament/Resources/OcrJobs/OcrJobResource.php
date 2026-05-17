@@ -16,7 +16,7 @@ class OcrJobResource extends Resource
     protected static ?string $pluralModelLabel = 'Procesos de IA';
     protected static string|\UnitEnum|null $navigationGroup = 'IA';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cpu-chip';
-    protected static ?string $navigationLabel = 'Procesos de IA';
+    // protected static ?string $navigationLabel = 'Procesos de IA';
 
     public static function table(Table $table): Table
     {

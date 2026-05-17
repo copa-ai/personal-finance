@@ -17,14 +17,6 @@ class ExpensesOverview extends StatsOverviewWidget
                 ->description('Monto total en gastos')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
-            Stat::make('Total Productos', Product::count())
-                ->description('Productos registrados')
-                ->descriptionIcon('heroicon-m-shopping-bag')
-                ->color('info'),
-            Stat::make('Necesidades', Need::count())
-                ->description('Clasificaciones activas')
-                ->descriptionIcon('heroicon-m-tag')
-                ->color('primary'),
         ];
     }
 }
