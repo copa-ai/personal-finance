@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Expenses\Schemas;
 
-use App\Filament\Resources\Products\Schemas\ProductForm;
+use App\Filament\Resources\Categories\Schemas\CategoryForm;
 use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
-use App\Models\Product;
+use App\Models\Category;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
@@ -39,24 +39,6 @@ class ExpenseItemForm
     private static function money(float $value): string
     {
         return number_format($value, 2, '.', '');
-    }
-
-    private static function unitOfMeasureForProduct(?string $productId): ?string
-    {
-        if (blank($productId)) {
-            return null;
-        }
-
-        if (array_key_exists($productId, self::$unitOfMeasureCache)) {
-            return self::$unitOfMeasureCache[$productId];
-        }
-
-        $unit = Product::query()->whereKey($productId)->value('unit_of_measure');
-        $unit = filled($unit) ? trim((string) $unit) : null;
-
-        self::$unitOfMeasureCache[$productId] = $unit;
-
-        return $unit;
     }
 
     public static function components(bool $includeExpenseField = false): array
@@ -158,7 +140,7 @@ class ExpenseItemForm
                         ->numeric()
                         ->prefix('€')
                         ->suffix(static function (Get $get): ?string {
-                            $unit = self::unitOfMeasureForProduct($get('product_id'));
+                            $unit = "und";
 
                             return filled($unit) ? ('/' . $unit) : null;
                         })
@@ -202,7 +184,6 @@ class ExpenseItemForm
                         ->required(),
                     Toggle::make('is_consumable')
                         ->label('¿Consumible?')
-                        ->helperText('Actívalo si este subgasto corresponde a unidades que entran en inventario del “Producto Base” (afecta al stock).')
                         ->default(true)
                         ->required(),
                     DatePicker::make('actual_start_date')
