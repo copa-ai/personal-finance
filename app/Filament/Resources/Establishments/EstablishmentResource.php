@@ -22,9 +22,11 @@ class EstablishmentResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $modelLabel = 'Establishment';
+    protected static ?string $modelLabel = 'Establecimiento';
 
-    protected static ?string $pluralModelLabel = 'Establishments';
+    protected static ?string $pluralModelLabel = 'Establecimientos';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Gestión';
 
     public static function form(Schema $schema): Schema
     {
