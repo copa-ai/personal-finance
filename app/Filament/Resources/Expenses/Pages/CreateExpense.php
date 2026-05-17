@@ -12,6 +12,7 @@ class CreateExpense extends CreateRecord
 
     protected bool $shouldCreateSingleExpenseItem = false;
     protected ?string $singleItemConcept = null;
+    protected ?int $singleItemUnits = null;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -21,6 +22,9 @@ class CreateExpense extends CreateRecord
         $this->singleItemConcept = $data['singleItemConcept'] ?? null;
         unset($data['singleItemConcept']);
 
+        $this->singleItemUnits = $data['singleItemUnits'] ?? null;
+        unset($data['singleItemUnits']);
+
         return $data;
     }
 
@@ -29,6 +33,7 @@ class CreateExpense extends CreateRecord
         $record = new ($this->getModel())($data);
         $record->shouldCreateSingleItem = $this->shouldCreateSingleExpenseItem;
         $record->singleItemConcept = $this->singleItemConcept;
+        $record->singleItemUnits = $this->singleItemUnits;
 
         if ($parentRecord = $this->getParentRecord()) {
             return $this->associateRecordWithParent($record, $parentRecord);

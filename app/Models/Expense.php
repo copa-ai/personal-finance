@@ -17,6 +17,7 @@ class Expense extends Model implements Commentable
 
     public bool $shouldCreateSingleItem = false;
     public ?string $singleItemConcept = null;
+    public ?int $singleItemUnits = null;
 
     public $timestamps = false;
 

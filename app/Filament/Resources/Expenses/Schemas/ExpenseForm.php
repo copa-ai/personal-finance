@@ -96,6 +96,19 @@ class ExpenseForm
                         })
                         ->visible(fn (Get $get): bool => (bool) $get('create_single_item'))
                         ->datalist(fn() => Product::pluck('name')->toArray()),
+                    TextInput::make('singleItemUnits')
+                        ->label('Unidades del subgasto único')
+                        ->numeric()
+                        ->step(1)
+                        ->helperText('Específica las unidades del subgasto, por defecto 1. Se dividirá el importe total del gasto entre las unidades para calcular el precio unitario.')
+                        ->dehydrated(function ($livewire): bool {
+                            if (method_exists($livewire, 'getFormContext')) {
+                                return $livewire->getFormContext() === 'create';
+                            }
+
+                            return $livewire instanceof \Filament\Resources\Pages\CreateRecord;
+                        })
+                        ->visible(fn (Get $get): bool => (bool) $get('create_single_item')),
                     \Filament\Forms\Components\FileUpload::make('ticket_photo_hash')
                         ->label('Foto del Ticket')
                         ->image()
