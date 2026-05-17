@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use App\Models\Category;
 use App\Models\Establishment;
+use App\Filament\Resources\Establishments\Schemas\EstablishmentForm;
 
 class ExpenseForm
 {
@@ -52,6 +53,7 @@ class ExpenseForm
                         ->label('Establishment')
                         ->options(fn () => Establishment::orderBy('name')->pluck('name', 'id'))
                         ->placeholder('No establishment')
+                        ->createOptionForm(EstablishmentForm::class)
                         ->searchable()
                         ->nullable(),
                     DateTimePicker::make('date')
