@@ -23,7 +23,8 @@ class EstablishmentForm
                     Select::make('category_id')
                         ->label('Category')
                         ->placeholder('No category')
-                        ->options(fn () => Category::orderBy('name')->pluck('name', 'id'))
+                        ->relationship('category', 'name')
+                        ->createOptionForm(CategoryForm::components())
                         ->searchable()
                         ->nullable(),
                 ]),
