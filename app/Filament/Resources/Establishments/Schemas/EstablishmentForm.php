@@ -25,6 +25,7 @@ class EstablishmentForm
                         ->label('Category')
                         ->placeholder('No category')
                         ->relationship('category', 'name')
+                        ->preload()
                         ->createOptionForm(CategoryForm::components())
                         ->searchable()
                         ->nullable(),

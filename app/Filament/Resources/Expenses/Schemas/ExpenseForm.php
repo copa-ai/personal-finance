@@ -26,6 +26,7 @@ class ExpenseForm
                 ->options(fn () => Establishment::orderBy('name')->pluck('name', 'id'))
                 ->placeholder('No establishment')
                 ->relationship('establishment', 'name')
+                ->preload()
                 ->createOptionForm(EstablishmentForm::components())
                 ->searchable()
                 ->nullable(),
