@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kirschbaum\Commentions\Contracts\Commentable;
 use Kirschbaum\Commentions\HasComments;
 
@@ -47,7 +48,7 @@ class Expense extends Model implements Commentable
         return $this->hasMany(ExpenseItem::class, 'expense_id');
     }
 
-    public function establishment()
+    public function establishment(): BelongsTo
     {
         return $this->belongsTo(Establishment::class, 'establishment_id');
     }
