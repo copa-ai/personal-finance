@@ -70,23 +70,4 @@ class Category extends Model
             'children' => fn (Builder $childQuery) => $childQuery->withDescendants(),
         ]);
     }
-
-    public function products(): HasMany
-    {
-        return $this->hasMany(Product::class, 'category_id');
-    }
-
-    public function allProducts(): Collection
-    {
-        $this->loadMissing('products');
-
-        $descendants = $this->descendants();
-        $descendants->load('products');
-
-        return $this->products
-            ->concat(
-                $descendants->flatMap(fn (Category $category): Collection => $category->products)
-            )
-            ->values();
-    }
 }

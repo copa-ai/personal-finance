@@ -19,7 +19,7 @@ class ExpenseItem extends Model implements Commentable
 
     protected $fillable = [
         'expense_id',
-        'product_id',
+        'category_id',
         'concept',
         'quantity',
         'unit_price',
@@ -51,8 +51,8 @@ class ExpenseItem extends Model implements Commentable
         return $this->belongsTo(Expense::class, 'expense_id');
     }
 
-    public function product(): BelongsTo
+    public function category(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Category::class, 'category_id');
     }
 }
