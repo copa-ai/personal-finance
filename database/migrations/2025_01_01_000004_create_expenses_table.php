@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('establishment_id')->nullable()->index();
             $table->timestampTz('date');
             $table->decimal('total', 10, 2)->nullable();
+            $table->string('import_csv_path', 255)->nullable();
             $table->string('ticket_photo_hash', 255)->nullable();
             $table->timestampTz('created_at')->useCurrent();
             $table->boolean('pending_review')->default(false);

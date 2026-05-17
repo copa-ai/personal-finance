@@ -29,6 +29,7 @@ class Expense extends Model implements Commentable
         'establishment_id',
         'date',
         'total',
+        'import_csv_path',
         'status',
         'ticket_photo_hash',
         'pending_review',
