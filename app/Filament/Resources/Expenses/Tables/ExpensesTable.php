@@ -24,26 +24,32 @@ class ExpensesTable
             ->defaultSort('date', 'desc')
             ->columns([
                 TextColumn::make('id')
+                ->toggleable(isToggledHiddenByDefault: true)
                     ->label('ID'),
                 TextColumn::make('establishment')
                     ->label('Establecimiento')
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->searchable(),
                 TextColumn::make('date')
                     ->label('Fecha y Hora')
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->dateTime()
                     ->sortable(),
                 TextColumn::make('total')
                     ->label('Total')
                     ->local_money()
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->summarize(Sum::make())
                     ->sortable(),
                 TextColumn::make('ticket_photo_hash')
                     ->label('Foto del Ticket')
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->formatStateUsing(fn (?string $state): string => filled($state) ? 'Sí' : 'No')
                     ->badge()
                     ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray'),
                 TextColumn::make('pending_review')
                     ->label('Pendiente de Revisar')
+                    ->toggleable(isToggledHiddenByDefault: false)
                     ->getStateUsing(fn (Expense $record): bool => $record->pending_review || $record->hasPendingSubexpenses())
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
                     ->badge()
