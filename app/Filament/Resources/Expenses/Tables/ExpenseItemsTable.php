@@ -18,6 +18,7 @@ class ExpenseItemsTable
         return $table
             ->columns([
                 TextColumn::make('id')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('ID'),
                 TextColumn::make('category.name')
                     ->label('Categoría')
@@ -33,31 +34,37 @@ class ExpenseItemsTable
                     ->label('Precio Unitario')
                     ->local_money()
                     ->sortable(),
-                IconColumn::make('is_consumable')
-                    ->label('¿Consumible?')
-                    ->boolean(),
-                TextColumn::make('end_date')
-                    ->label('Fecha Fin')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('projected_start_date')
-                    ->label('Inicio Proyectado')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('actual_start_date')
-                    ->label('Inicio Real')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('item_type')
-                    ->label('Clasificación')
-                    ->badge(),
-                TextColumn::make('recurrence')
-                    ->label('Recurrencia')
-                    ->badge(),
                 TextColumn::make('line_total')
                     ->label('Total de Línea')
                     ->local_money()
                     ->sortable(),
+                IconColumn::make('is_consumable')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('¿Consumible?')
+                    ->boolean(),
+                TextColumn::make('end_date')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Fecha Fin')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('projected_start_date')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Inicio Proyectado')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('actual_start_date')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Inicio Real')
+                    ->date()
+                    ->sortable(),
+                TextColumn::make('item_type')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Clasificación')
+                    ->badge(),
+                TextColumn::make('recurrence')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Recurrencia')
+                    ->badge(),
             ])
             ->filters([
                 \Filament\Tables\Filters\SelectFilter::make('item_type')

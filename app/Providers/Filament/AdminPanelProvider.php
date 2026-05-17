@@ -95,6 +95,7 @@ class AdminPanelProvider extends PanelProvider
 
         Table::configureUsing(function (Table $table): void {
             $table
+                ->striped()
                 ->paginationPageOptions([10, 25, 50, 100])
                 ->defaultPaginationPageOption(25)
                 ->persistFiltersInSession()

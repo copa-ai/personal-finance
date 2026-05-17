@@ -12,6 +12,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
@@ -34,6 +35,7 @@ class ExpensesTable
                 TextColumn::make('total')
                     ->label('Total')
                     ->local_money()
+                    ->summarize(Sum::make())
                     ->sortable(),
                 TextColumn::make('ticket_photo_hash')
                     ->label('Foto del Ticket')
