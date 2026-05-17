@@ -20,7 +20,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Usamamuneerchaudhary\CommandPalette\FilamentCommandPalettePlugin;
+use Rarq\FilamentQuickNotes\FilamentQuickNotesPlugin;
+// use Usamamuneerchaudhary\CommandPalette\FilamentCommandPalettePlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -44,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
             ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())
             ->plugin(\Caresome\FilamentNeobrutalism\NeobrutalismeTheme::make())
+            ->plugin(FilamentQuickNotesPlugin::make()->visible(true))
             // ->plugin(FilamentCommandPalettePlugin::make())
             ->colors([
                 'primary' => Color::Green,

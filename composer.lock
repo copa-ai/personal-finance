@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e50df23227edf0e6798a2020373059eb",
+    "content-hash": "4b15679e34d58429ca495ef9ea3df2e1",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -5515,6 +5515,67 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "time": "2025-12-14T04:43:48+00:00"
+        },
+        {
+            "name": "rarq/filament-quick-notes",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rodrigoarq14/filament-quick-notes.git",
+                "reference": "1add3b2cf3370d01af3e840fd5c64d7830d86a9d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rodrigoarq14/filament-quick-notes/zipball/1add3b2cf3370d01af3e840fd5c64d7830d86a9d",
+                "reference": "1add3b2cf3370d01af3e840fd5c64d7830d86a9d",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^3.0|^4.0|^5.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Rarq\\FilamentQuickNotes\\QuickNotesServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Rarq\\FilamentQuickNotes\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Rodrigo Alfonso Ríos Quevedo",
+                    "email": "rodrigoarq140599@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A FilamentPHP plugin that adds a personal sticky notes panel to your admin. Create, color-code, reorder and manage notes without leaving the page.",
+            "keywords": [
+                "filament",
+                "filament-package",
+                "filament-plugin",
+                "filamentphp",
+                "laravel",
+                "notes",
+                "post-it",
+                "quick",
+                "quick-notes"
+            ],
+            "support": {
+                "issues": "https://github.com/rodrigoarq14/filament-quick-notes/issues",
+                "source": "https://github.com/rodrigoarq14/filament-quick-notes/tree/v1.0.0"
+            },
+            "time": "2026-04-28T04:59:18+00:00"
         },
         {
             "name": "ryangjchandler/blade-capture-directive",

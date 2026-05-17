@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Rarq\FilamentQuickNotes\Traits\HasFilamentQuickNotes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +11,7 @@ use Kirschbaum\Commentions\Contracts\Commenter;
 class User extends Authenticatable implements Commenter
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasFilamentQuickNotes;
 
     /**
      * The attributes that are mass assignable.
