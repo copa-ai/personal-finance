@@ -26,6 +26,8 @@ class EstablecimientoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Establecimientos';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
+
     public static function form(Schema $schema): Schema
     {
         return EstablecimientoForm::configure($schema);

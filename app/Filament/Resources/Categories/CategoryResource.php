@@ -28,7 +28,7 @@ class CategoryResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Categorías';
 
-    // protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
+    protected static string|\UnitEnum|null $navigationGroup = 'Categorías';
 
     public static function form(Schema $schema): Schema
     {
