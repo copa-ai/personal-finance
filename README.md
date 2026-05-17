@@ -146,11 +146,14 @@ Lecturas
 
 Tareas en segundo plano (Laravel Scheduler)
 
+- BackupDatabase (diario 03:15 Europe/Madrid)
 - RecalcularFechasAgotamiento (diario 03:00)  
 - AlertasStockBajo (diario 07:00)  
 - ActualizarMediasVariables (diario)  
 - SugerenciasRemplazo (semanal)  
 - ReporteMensual (primer día del mes)  
 - CalculoInflacionPersonal (mensual)  
+
+Los backups de base de datos se guardan en `storage/app/private/backups/postgres` por defecto.
 
 Todas las escrituras críticas se ejecutan dentro de transacciones Laravel. Las consultas pesadas utilizan materialized views. El sistema está preparado para Filament Resources y Actions.

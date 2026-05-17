@@ -46,6 +46,29 @@ services:
       db:
         condition: service_healthy
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: personal_finance_scheduler
+    working_dir: /var/www/html
+    command: php artisan schedule:work --verbose --no-interaction
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: personal_finance
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      OLLAMA_TIMEOUT: 1200
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:18-alpine
     container_name: personal_finance_db
@@ -56,6 +79,7 @@ services:
       POSTGRES_DB: personal_finance
       POSTGRES_USER: laravel
       POSTGRES_PASSWORD: secret
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Console\Commands\BackupDatabase;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,6 +13,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\ProcessOcr::class,
+        BackupDatabase::class,
     ];
 
     /**
@@ -20,7 +22,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // 
+        $schedule->command(BackupDatabase::class)
+            ->dailyAt('03:15')
+            ->timezone('Europe/Madrid')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**
