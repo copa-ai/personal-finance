@@ -53,7 +53,7 @@ class ExpenseForm
                         ->label('Establishment')
                         ->options(fn () => Establishment::orderBy('name')->pluck('name', 'id'))
                         ->placeholder('No establishment')
-                        ->createOptionForm(EstablishmentForm::class)
+                        ->createOptionForm(EstablishmentForm::components())
                         ->searchable()
                         ->nullable(),
                     DateTimePicker::make('date')
