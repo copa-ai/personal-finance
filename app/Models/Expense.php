@@ -62,7 +62,13 @@ class Expense extends Model implements Commentable
             return false;
         }
 
-        return self::moneyToCents($this->subexpensesTotal()) !== self::moneyToCents($this->total);
+        $difference = abs(
+            self::moneyToCents($this->subexpensesTotal()) -
+            self::moneyToCents($this->total)
+        );
+
+        // Permitimos una diferencia de hasta 10 céntimos
+        return $difference > 10;
     }
 
     public function subexpensesDifferenceCents(): ?int
