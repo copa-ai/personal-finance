@@ -24,7 +24,7 @@ fi
 
 OCR_URL="${OCR_OLLAMA_URL:-http://172.17.0.1:11434/api/generate}"
 OCR_MODEL="${OCR_OLLAMA_MODEL:-glm-ocr}"
-OCR_PROMPT='Analyze receipt and return JSON with items array containing concept, quantity (default 1), and unit_price. Only raw JSON. No extra text.'
+OCR_PROMPT='Analyze receipt and return raw JSON with establishment, category, and items. establishment and category should be strings when identifiable, otherwise empty strings. items must be an array of objects with concept, quantity (default 1), and unit_price. Only raw JSON. No extra text.'
 
 # 1. Creamos un archivo temporal para la imagen con extensión .png
 TMP_IMG=$(mktemp --suffix=.png)

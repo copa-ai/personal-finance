@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
+use App\Models\Category;
+use App\Models\Establishment;
 use App\Models\Expense;
 use App\Models\ExpenseItem;
 use Exception;
@@ -228,7 +230,9 @@ class OcrService
                 throw new RuntimeException('El script OCR no devolvió salida.');
             }
 
-            $items = $this->parseResponseContent($stdout, $expenseId);
+            $decoded = $this->decodeOcrPayload($stdout, $expenseId);
+            $this->syncExpenseMetadataFromTicket($expense, $decoded);
+            $items = $this->parseResponsePayload($decoded, $expenseId);
 
             $totalDuration = round((microtime(true) - $startTime) * 1000, 2);
 
@@ -263,12 +267,19 @@ class OcrService
      */
     private function parseResponseContent(string $content, $expenseId = null): array
     {
+        return $this->parseResponsePayload($this->decodeOcrPayload($content, $expenseId), $expenseId);
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     * @return array<int, array{concept: string, quantity: string, unit_price: string}>
+     */
+    private function parseResponsePayload(array $decoded, $expenseId = null): array
+    {
         Log::debug(self::LOG_PREFIX . ' Parseando contenido de respuesta', [
             'expense_id' => $expenseId,
-            'content_length' => strlen($content),
+            'payload_keys' => array_keys($decoded),
         ]);
-
-        $decoded = $this->decodeOcrPayload($content, $expenseId);
 
         $items = isset($decoded['items']) ? $decoded['items'] : null;
 
@@ -375,6 +386,137 @@ class OcrService
     }
 
     /**
+     * @param array<string, mixed> $decoded
+     */
+    private function syncExpenseMetadataFromTicket(Expense $expense, array $decoded): void
+    {
+        $expense->refresh();
+
+        $establishmentName = $this->extractTextValue($decoded, [
+            'establishment',
+            'establishment_name',
+            'merchant',
+            'merchant_name',
+            'store',
+            'vendor',
+            'business_name',
+        ]);
+
+        $categoryName = $this->extractTextValue($decoded, [
+            'category',
+            'category_name',
+            'establishment_category',
+        ]);
+
+        if ($establishmentName === null && $categoryName === null) {
+            return;
+        }
+
+        DB::transaction(function () use ($expense, $establishmentName, $categoryName): void {
+            $category = null;
+            if ($categoryName !== null) {
+                $category = $this->firstOrCreateCategory($categoryName);
+            }
+
+            $establishment = $expense->establishment;
+
+            if ($establishment === null && $establishmentName !== null) {
+                $establishment = $this->firstOrCreateEstablishment($establishmentName, $category?->id);
+                $expense->forceFill([
+                    'establishment_id' => $establishment->id,
+                ])->save();
+            } elseif ($establishment !== null && $category !== null && $establishment->category_id === null) {
+                $establishment->forceFill([
+                    'category_id' => $category->id,
+                ])->save();
+            }
+        });
+    }
+
+    private function firstOrCreateEstablishment(string $name, ?string $categoryId = null): Establishment
+    {
+        $normalizedName = $this->normalizeTicketText($name);
+
+        $establishment = Establishment::query()
+            ->whereRaw('LOWER(name) = LOWER(?)', [$normalizedName])
+            ->first();
+
+        if ($establishment !== null) {
+            if ($categoryId !== null && $establishment->category_id === null) {
+                $establishment->forceFill(['category_id' => $categoryId])->save();
+            }
+
+            return $establishment;
+        }
+
+        return Establishment::query()->create([
+            'name' => $normalizedName,
+            'category_id' => $categoryId,
+        ]);
+    }
+
+    private function firstOrCreateCategory(string $name): Category
+    {
+        $normalizedName = $this->normalizeTicketText($name);
+
+        $category = Category::query()
+            ->withTrashed()
+            ->whereRaw('LOWER(name) = LOWER(?)', [$normalizedName])
+            ->first();
+
+        if ($category !== null) {
+            if ($category->trashed()) {
+                $category->restore();
+            }
+
+            return $category;
+        }
+
+        return Category::query()->create([
+            'name' => $normalizedName,
+            'parent_id' => null,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     */
+    private function extractTextValue(array $decoded, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $decoded)) {
+                continue;
+            }
+
+            $value = $decoded[$key];
+
+            if (is_string($value) || is_numeric($value)) {
+                $normalized = $this->normalizeTicketText((string) $value);
+                return $normalized !== '' ? $normalized : null;
+            }
+
+            if (is_array($value)) {
+                foreach (['name', 'label', 'value', 'title'] as $nestedKey) {
+                    if (isset($value[$nestedKey]) && (is_string($value[$nestedKey]) || is_numeric($value[$nestedKey]))) {
+                        $normalized = $this->normalizeTicketText((string) $value[$nestedKey]);
+                        return $normalized !== '' ? $normalized : null;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeTicketText(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return $value;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function decodeOcrPayload(string $content, $expenseId = null): array
@@ -413,7 +555,7 @@ class OcrService
 
     private function prompt(): string
     {
-        return 'Analiza la imagen del ticket y extrae todas las líneas de productos o servicios. Devuelve únicamente JSON con items.';
+        return 'Analyze receipt and return raw JSON with establishment, category, and items. establishment and category should be strings when identifiable, otherwise empty strings. items must be an array of objects with concept, quantity (default 1), and unit_price. Only raw JSON. No extra text.';
     }
 
     private function generateUrl(): string
