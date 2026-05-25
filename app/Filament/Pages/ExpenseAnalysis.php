@@ -20,8 +20,6 @@ class ExpenseAnalysis extends Dashboard
 {
     use HasFiltersForm;
 
-    protected bool $persistsFiltersInSession = false;
-
     protected static string $routePath = '/analisis-gastos';
 
     protected static ?string $title = 'Análisis de gastos';
@@ -40,6 +38,11 @@ class ExpenseAnalysis extends Dashboard
             ExpenseAnalysisByEstablishmentChart::class,
             ExpenseAnalysisItemsTable::class,
         ];
+    }
+
+    public function persistsFiltersInSession(): bool
+    {
+        return false;
     }
 
     public function filtersForm(Schema $schema): Schema
