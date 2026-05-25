@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Category;
 use App\Models\ExpenseItem;
 use Carbon\CarbonInterface;
 use Carbon\CarbonImmutable;
@@ -13,10 +12,10 @@ class ExpenseAnalyticsService
 {
     public function categoryOptions(): array
     {
-        return Category::query()
+        return \App\Models\Category::query()
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn (Category $category): array => [
+            ->mapWithKeys(fn (\App\Models\Category $category): array => [
                 $category->id => $this->formatCategoryLabel($category),
             ])
             ->all();
@@ -109,50 +108,25 @@ class ExpenseAnalyticsService
 
     protected function baseItemQuery(array $filters): Builder
     {
-        $query = ExpenseItem::query()
+        return ExpenseItem::query()
             ->join('expenses', 'expense_items.expense_id', '=', 'expenses.id')
             ->leftJoin('establishments', 'expenses.establishment_id', '=', 'establishments.id')
             ->leftJoin('categories as item_categories', 'expense_items.category_id', '=', 'item_categories.id')
-            ->leftJoin('categories as establishment_categories', 'establishments.category_id', '=', 'establishment_categories.id');
-
-        $query = $this->applyFilters($query, $filters);
-
-        return $query;
-    }
-
-    protected function applyFilters(Builder $query, array $filters): Builder
-    {
-        $startDate = $this->normalizeDateFilter($filters['startDate'] ?? null);
-        $endDate = $this->normalizeDateFilter($filters['endDate'] ?? null);
-        $categoryId = $filters['categoryId'] ?? null;
-
-        return $query
+            ->leftJoin('categories as establishment_categories', 'establishments.category_id', '=', 'establishment_categories.id')
             ->when(
-                filled($startDate),
-                fn (Builder $query) => $query->whereDate('expenses.date', '>=', $startDate),
+                filled($this->normalizeDateFilter($filters['startDate'] ?? null)),
+                fn (Builder $query) => $query->whereDate('expenses.date', '>=', $this->normalizeDateFilter($filters['startDate'] ?? null)),
             )
             ->when(
-                filled($endDate),
-                fn (Builder $query) => $query->whereDate('expenses.date', '<=', $endDate),
+                filled($this->normalizeDateFilter($filters['endDate'] ?? null)),
+                fn (Builder $query) => $query->whereDate('expenses.date', '<=', $this->normalizeDateFilter($filters['endDate'] ?? null)),
             )
             ->when(
-                filled($categoryId),
-                function (Builder $query) use ($categoryId): Builder {
-                    $categoryIds = $this->resolveCategoryIds((string) $categoryId);
-
-                    return $query->where(function (Builder $query) use ($categoryIds): Builder {
-                        foreach (array_values($categoryIds) as $index => $resolvedCategoryId) {
-                            $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
-
-                            $query->{$method}(
-                                'COALESCE(expense_items.category_id, establishments.category_id) = ?',
-                                [$resolvedCategoryId],
-                            );
-                        }
-
-                        return $query;
-                    });
-                },
+                filled($filters['categoryId'] ?? null),
+                fn (Builder $query) => $query->whereRaw(
+                    'COALESCE(expense_items.category_id, establishments.category_id) = ?',
+                    [(string) $filters['categoryId']],
+                ),
             );
     }
 
@@ -180,21 +154,6 @@ class ExpenseAnalyticsService
         }
     }
 
-    protected function resolveCategoryIds(string $categoryId): array
-    {
-        $category = Category::query()->withDescendants()->find($categoryId);
-
-        if (! $category) {
-            return [$categoryId];
-        }
-
-        return collect([$category->id])
-            ->concat($category->descendants()->pluck('id'))
-            ->unique()
-            ->values()
-            ->all();
-    }
-
     protected function collapseTopResults(Collection $items, int $limit): Collection
     {
         $sorted = $items
@@ -214,7 +173,7 @@ class ExpenseAnalyticsService
         ]);
     }
 
-    protected function formatCategoryLabel(Category $category): string
+    protected function formatCategoryLabel(\App\Models\Category $category): string
     {
         $ancestors = $category->ancestor_names;
 

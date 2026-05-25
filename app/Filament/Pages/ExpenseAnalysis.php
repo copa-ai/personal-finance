@@ -7,18 +7,19 @@ use App\Filament\Widgets\ExpenseAnalysisByEstablishmentChart;
 use App\Filament\Widgets\ExpenseAnalysisItemsTable;
 use App\Filament\Widgets\ExpenseAnalysisOverview;
 use App\Services\ExpenseAnalyticsService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Pages\Dashboard\Actions\FilterAction;
 use Filament\Pages\Dashboard;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
-use Filament\Schemas\Components\Section;
+use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
 use Filament\Schemas\Schema;
 use BackedEnum;
 use UnitEnum;
 
 class ExpenseAnalysis extends Dashboard
 {
-    use HasFiltersForm;
+    use HasFiltersAction;
 
     protected static string $routePath = '/analisis-gastos';
 
@@ -45,30 +46,40 @@ class ExpenseAnalysis extends Dashboard
         return false;
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            FilterAction::make()
+                ->label('Aplicar filtros')
+                ->schema($this->getFilterSchema()),
+            Action::make('clearFilters')
+                ->label('Limpiar filtros')
+                ->color('gray')
+                ->icon('heroicon-o-x-mark')
+                ->action(function (): void {
+                    $this->filters = [];
+                }),
+        ];
+    }
+
     public function filtersForm(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Section::make('Filtros')
-                    ->description('La categoría se aplica a la categoría efectiva del subgasto.')
-                    ->columnSpanFull()
-                    ->schema([
-                        DatePicker::make('startDate')
-                            ->label('Desde'),
-                        DatePicker::make('endDate')
-                            ->label('Hasta'),
-                        Select::make('categoryId')
-                            ->label('Categoría')
-                            ->placeholder('Todas')
-                            ->searchable()
-                            ->preload()
-                            ->options(fn (): array => app(ExpenseAnalyticsService::class)->categoryOptions()),
-                    ])
-                    ->columns([
-                        'md' => 3,
-                        'xl' => 3,
-                    ])
-                    ->contained(false),
-            ]);
+        return $schema->components([]);
+    }
+
+    protected function getFilterSchema(): array
+    {
+        return [
+            DatePicker::make('startDate')
+                ->label('Desde'),
+            DatePicker::make('endDate')
+                ->label('Hasta'),
+            Select::make('categoryId')
+                ->label('Categoría')
+                ->placeholder('Todas')
+                ->searchable()
+                ->preload()
+                ->options(fn (): array => app(ExpenseAnalyticsService::class)->categoryOptions()),
+        ];
     }
 }
