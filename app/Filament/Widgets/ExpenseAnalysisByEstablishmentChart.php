@@ -47,9 +47,17 @@ class ExpenseAnalysisByEstablishmentChart extends ChartWidget
         return [
             'maintainAspectRatio' => false,
             'cutout' => '60%',
+            'layout' => [
+                'padding' => 8,
+            ],
             'plugins' => [
                 'legend' => [
                     'position' => 'bottom',
+                    'labels' => [
+                        'usePointStyle' => true,
+                        'padding' => 16,
+                        'generateLabels' => RawJs::make($this->legendLabelsScript()),
+                    ],
                 ],
                 'tooltip' => [
                     'callbacks' => [
@@ -59,14 +67,48 @@ function (context) {
         style: 'currency',
         currency: 'EUR',
     }).format(context.parsed);
+    const total = context.dataset.data.reduce((sum, item) => sum + item, 0);
+    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1).replace('.', ',') : '0,0';
 
-    return `${context.label}: ${value}`;
+    return `${context.label}: ${value} (${percentage} %)`;
 }
 JS),
                     ],
                 ],
             ],
         ];
+    }
+
+    private function legendLabelsScript(): string
+    {
+        return <<<'JS'
+function (chart) {
+    const dataset = chart.data.datasets[0];
+    const total = dataset.data.reduce((sum, item) => sum + item, 0);
+    const formatter = new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+    });
+
+    return chart.data.labels.map((label, index) => {
+        const value = Number(dataset.data[index] ?? 0);
+        const percentage = total > 0 ? ((value / total) * 100).toFixed(1).replace('.', ',') : '0,0';
+        const backgroundColor = Array.isArray(dataset.backgroundColor)
+            ? dataset.backgroundColor[index]
+            : dataset.backgroundColor;
+
+        return {
+            text: `${label}: ${formatter.format(value)} (${percentage} %)`,
+            fillStyle: backgroundColor,
+            strokeStyle: backgroundColor,
+            lineWidth: 0,
+            hidden: !chart.getDataVisibility(index),
+            index,
+            pointStyle: 'circle',
+        };
+    });
+}
+JS;
     }
 
     /**

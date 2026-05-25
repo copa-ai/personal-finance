@@ -70,6 +70,36 @@ class ExpenseAnalyticsService
         );
     }
 
+    public function totalForFilters(array $filters): float
+    {
+        return (float) $this->baseAggregationQuery($filters)->sum('expense_items.line_total');
+    }
+
+    public function totalForDateRange(array $filters): float
+    {
+        $filtersWithoutCategory = $filters;
+        unset($filtersWithoutCategory['categoryId']);
+
+        return (float) $this->baseAggregationQuery($filtersWithoutCategory)->sum('expense_items.line_total');
+    }
+
+    public function selectedCategoryLabel(array $filters): ?string
+    {
+        $categoryId = $filters['categoryId'] ?? null;
+
+        if (! filled($categoryId)) {
+            return null;
+        }
+
+        $category = Category::query()->find($categoryId);
+
+        if (! $category) {
+            return null;
+        }
+
+        return $this->formatCategoryLabel($category);
+    }
+
     protected function baseAggregationQuery(array $filters): Builder
     {
         return $this->baseItemQuery($filters);

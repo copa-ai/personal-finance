@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Widgets\ExpenseAnalysisByCategoryChart;
 use App\Filament\Widgets\ExpenseAnalysisByEstablishmentChart;
 use App\Filament\Widgets\ExpenseAnalysisItemsTable;
+use App\Filament\Widgets\ExpenseAnalysisOverview;
 use App\Services\ExpenseAnalyticsService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -32,6 +33,7 @@ class ExpenseAnalysis extends Dashboard
     public function getWidgets(): array
     {
         return [
+            ExpenseAnalysisOverview::class,
             ExpenseAnalysisByCategoryChart::class,
             ExpenseAnalysisByEstablishmentChart::class,
             ExpenseAnalysisItemsTable::class,
