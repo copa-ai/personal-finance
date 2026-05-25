@@ -15,7 +15,6 @@
         "kirschbaum-development/commentions": "^0.7.9",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "rarq/filament-quick-notes": "^1.0",
         "usamamuneerchaudhary/filament-command-palette": "^1.2"
     },
     "require-dev": {
