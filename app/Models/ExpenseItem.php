@@ -7,6 +7,7 @@ use App\Enums\Recurrence;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 use Kirschbaum\Commentions\Contracts\Commentable;
 use Kirschbaum\Commentions\HasComments;
 
@@ -54,5 +55,19 @@ class ExpenseItem extends Model implements Commentable
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function getEffectiveCategoryAttribute(): ?Category
+    {
+        return $this->category ?? $this->expense?->establishment?->category;
+    }
+
+    public function scopeWithEffectiveCategory(Builder $query): Builder
+    {
+        return $query
+            ->with([
+                'category',
+                'expense.establishment.category',
+            ]);
     }
 }
