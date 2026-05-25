@@ -92,7 +92,7 @@ class ExpenseAnalyticsService
             return null;
         }
 
-        $category = Category::query()->find($categoryId);
+        $category = \App\Models\Category::query()->find($categoryId);
 
         if (! $category) {
             return null;
