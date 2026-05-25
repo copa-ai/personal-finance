@@ -46,13 +46,16 @@ class ExpenseAnalysis extends Dashboard
             ->components([
                 Section::make('Filtros')
                     ->description('La categoría se aplica a la categoría efectiva del subgasto.')
+                    ->columnSpanFull()
                     ->schema([
                         DatePicker::make('startDate')
                             ->label('Desde')
-                            ->default(now()->startOfMonth()->toDateString()),
+                            ->default(now()->startOfMonth()->toDateString())
+                            ->native(false),
                         DatePicker::make('endDate')
                             ->label('Hasta')
-                            ->default(now()->toDateString()),
+                            ->default(now()->toDateString())
+                            ->native(false),
                         Select::make('categoryId')
                             ->label('Categoría')
                             ->placeholder('Todas')
@@ -60,7 +63,10 @@ class ExpenseAnalysis extends Dashboard
                             ->preload()
                             ->options(fn (): array => app(ExpenseAnalyticsService::class)->categoryOptions()),
                     ])
-                    ->columns(3)
+                    ->columns([
+                        'md' => 3,
+                        'xl' => 3,
+                    ])
                     ->contained(false),
             ]);
     }

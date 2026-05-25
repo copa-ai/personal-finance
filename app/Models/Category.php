@@ -67,7 +67,7 @@ class Category extends Model
     public function scopeWithDescendants(Builder $query): Builder
     {
         return $query->with([
-            'children' => fn (Builder $childQuery) => $childQuery->withDescendants(),
+            'children' => fn ($childQuery) => $childQuery->withDescendants(),
         ]);
     }
 }
