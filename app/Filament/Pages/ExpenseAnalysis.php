@@ -20,6 +20,8 @@ class ExpenseAnalysis extends Dashboard
 {
     use HasFiltersForm;
 
+    protected bool $persistsFiltersInSession = false;
+
     protected static string $routePath = '/analisis-gastos';
 
     protected static ?string $title = 'Análisis de gastos';
@@ -50,16 +52,10 @@ class ExpenseAnalysis extends Dashboard
                     ->schema([
                         DatePicker::make('startDate')
                             ->label('Desde')
-                            ->default(now()->startOfMonth()->toDateString())
-                            ->native(false)
-                            ->format('Y-m-d')
-                            ->displayFormat('d/m/Y'),
+                            ->default(now()->startOfMonth()->toDateString()),
                         DatePicker::make('endDate')
                             ->label('Hasta')
-                            ->default(now()->toDateString())
-                            ->native(false)
-                            ->format('Y-m-d')
-                            ->displayFormat('d/m/Y'),
+                            ->default(now()->toDateString()),
                         Select::make('categoryId')
                             ->label('Categoría')
                             ->placeholder('Todas')
