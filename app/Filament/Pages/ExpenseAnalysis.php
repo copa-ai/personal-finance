@@ -54,11 +54,9 @@ class ExpenseAnalysis extends Dashboard
                     ->columnSpanFull()
                     ->schema([
                         DatePicker::make('startDate')
-                            ->label('Desde')
-                            ->default(now()->startOfMonth()->toDateString()),
+                            ->label('Desde'),
                         DatePicker::make('endDate')
-                            ->label('Hasta')
-                            ->default(now()->toDateString()),
+                            ->label('Hasta'),
                         Select::make('categoryId')
                             ->label('Categoría')
                             ->placeholder('Todas')
