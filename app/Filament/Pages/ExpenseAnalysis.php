@@ -25,7 +25,7 @@ class ExpenseAnalysis extends Dashboard
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-pie';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Finanzas';
+    protected static ?string $navigationLabel = 'Análisis de gastos';
 
     protected static ?int $navigationSort = 2;
 
