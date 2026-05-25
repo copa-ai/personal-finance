@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\ExpenseItem;
+use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -120,8 +122,8 @@ class ExpenseAnalyticsService
 
     protected function applyFilters(Builder $query, array $filters): Builder
     {
-        $startDate = $filters['startDate'] ?? null;
-        $endDate = $filters['endDate'] ?? null;
+        $startDate = $this->normalizeDateFilter($filters['startDate'] ?? null);
+        $endDate = $this->normalizeDateFilter($filters['endDate'] ?? null);
         $categoryId = $filters['categoryId'] ?? null;
 
         return $query
@@ -152,6 +154,30 @@ class ExpenseAnalyticsService
                     });
                 },
             );
+    }
+
+    private function normalizeDateFilter(mixed $value): ?string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->toDateString();
+        }
+
+        if (! is_string($value) || blank($value)) {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y'] as $format) {
+            try {
+                return CarbonImmutable::createFromFormat($format, $value)->toDateString();
+            } catch (\Throwable) {
+            }
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     protected function resolveCategoryIds(string $categoryId): array

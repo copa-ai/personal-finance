@@ -51,11 +51,15 @@ class ExpenseAnalysis extends Dashboard
                         DatePicker::make('startDate')
                             ->label('Desde')
                             ->default(now()->startOfMonth()->toDateString())
-                            ->native(false),
+                            ->native(false)
+                            ->format('Y-m-d')
+                            ->displayFormat('d/m/Y'),
                         DatePicker::make('endDate')
                             ->label('Hasta')
                             ->default(now()->toDateString())
-                            ->native(false),
+                            ->native(false)
+                            ->format('Y-m-d')
+                            ->displayFormat('d/m/Y'),
                         Select::make('categoryId')
                             ->label('Categoría')
                             ->placeholder('Todas')
