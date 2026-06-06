@@ -82,33 +82,41 @@ JS),
     private function legendLabelsScript(): string
     {
         return <<<'JS'
-function (chart) {
-    const dataset = chart.data.datasets[0];
-    const total = dataset.data.reduce((sum, item) => sum + item, 0);
-    const formatter = new Intl.NumberFormat('es-ES', {
-        style: 'currency',
-        currency: 'EUR',
-    });
+    function (chart) {
+        // Vinculamos el contexto correcto para que la librería no rompa la inicialización de la leyenda.
+        const options = chart.options?.plugins?.legend?.labels || {};
+        
+        const dataset = chart.data.datasets[0];
+        const total = dataset?.data?.reduce((sum, item) => sum + item, 0) || 0;
+        const formatter = new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+        });
 
-    return chart.data.labels.map((label, index) => {
-        const value = Number(dataset.data[index] ?? 0);
-        const percentage = total > 0 ? ((value / total) * 100).toFixed(1).replace('.', ',') : '0,0';
-        const backgroundColor = Array.isArray(dataset.backgroundColor)
-            ? dataset.backgroundColor[index]
-            : dataset.backgroundColor;
+        if (!chart.data?.labels) return [];
 
-        return {
-            text: `${label}: ${formatter.format(value)} (${percentage} %)`,
-            fillStyle: backgroundColor,
-            strokeStyle: backgroundColor,
-            lineWidth: 0,
-            hidden: !chart.getDataVisibility(index),
-            index,
-            pointStyle: 'circle',
-        };
-    });
-}
-JS;
+        return chart.data.labels.map((label, index) => {
+            const value = Number(dataset.data[index] ?? 0);
+            const percentage = total > 0 ? ((value / total) * 100).toFixed(1).replace('.', ',') : '0,0';
+            const backgroundColor = Array.isArray(dataset.backgroundColor)
+                ? dataset.backgroundColor[index]
+                : dataset.backgroundColor;
+
+            return {
+                text: `${label}: ${formatter.format(value)} (${percentage} %)`,
+                fillStyle: backgroundColor,
+                strokeStyle: backgroundColor,
+                lineWidth: 0,
+                hidden: !chart.getDataVisibility(index),
+                index,
+                pointStyle: 'circle',
+                // Aseguramos que pasamos las propiedades requeridas por el tipado nativo
+                boxWidth: options.boxWidth ?? 12,
+                boxHeight: options.boxHeight ?? 12,
+            };
+        });
+    }
+    JS;
     }
 
     /**

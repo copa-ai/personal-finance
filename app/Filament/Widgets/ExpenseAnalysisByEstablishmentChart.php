@@ -83,8 +83,12 @@ JS),
     {
         return <<<'JS'
 function (chart) {
-    const dataset = chart.data.datasets[0];
-    const total = dataset.data.reduce((sum, item) => sum + item, 0);
+    const options = chart.options?.plugins?.legend?.labels || {};
+    const dataset = chart.data.datasets?.[0];
+    
+    if (!dataset || !chart.data?.labels) return [];
+
+    const total = dataset.data?.reduce((sum, item) => sum + item, 0) || 0;
     const formatter = new Intl.NumberFormat('es-ES', {
         style: 'currency',
         currency: 'EUR',
@@ -105,6 +109,8 @@ function (chart) {
             hidden: !chart.getDataVisibility(index),
             index,
             pointStyle: 'circle',
+            boxWidth: options.boxWidth ?? 12,
+            boxHeight: options.boxHeight ?? 12,
         };
     });
 }
