@@ -29,8 +29,8 @@ class ExpenseAnalysisByEstablishmentChart extends ChartWidget
     {
         $rows = app(ExpenseAnalyticsService::class)->groupedByEstablishment($this->pageFilters ?? []);
         $items = $rows->map(fn ($row): array => [
-            'label' => $row->label,
-            'total' => round($row->total, 2),
+            'label' => $row['label'],
+            'total' => round((float) $row['total'], 2),
         ])->all();
 
         return [
