@@ -41,9 +41,63 @@ class ExpenseAnalysis extends Dashboard
         ];
     }
 
+    /**
+     * Título dinámico de la página basado en los filtros aplicados
+     */
+    public function getTitle(): string | Htmlable
+    {
+        $categoryName = $this->getFilterCategoryName();
+
+        if ($categoryName) {
+            return "Análisis de gastos: {$categoryName}";
+        }
+
+        return 'Análisis de gastos general';
+    }
+
+    /**
+     * Descripción / Subtítulo dinámico con el rango de fechas
+     */
+    public function getSubheading(): ?string
+    {
+        $startDate = $this->filters['startDate'] ?? null;
+        $endDate = $this->filters['endDate'] ?? null;
+
+        if ($startDate && $endDate) {
+            return "Mostrando datos desde el {$startDate} hasta el {$endDate}";
+        }
+
+        if ($startDate) {
+            return "Mostrando datos desde el {$startDate}";
+        }
+
+        if ($endDate) {
+            return "Mostrando datos hasta el {$endDate}";
+        }
+
+        return 'Mostrando el histórico completo de gastos';
+    }
+
+    /**
+     * Helper para obtener el nombre de la categoría seleccionada
+     */
+    protected function getFilterCategoryName(): ?string
+    {
+        $categoryId = $this->filters['categoryId'] ?? null;
+
+        if (! $categoryId) {
+            return null;
+        }
+
+        // Recuperamos las opciones del servicio para buscar el nombre comercial/legible
+        $categories = app(ExpenseAnalyticsService::class)->categoryOptions();
+
+        return $categories[$categoryId] ?? null;
+    }
+
     public function persistsFiltersInSession(): bool
     {
-        return false;
+        return true;
     }
 
     protected function getHeaderActions(): array
