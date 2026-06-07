@@ -14,6 +14,7 @@ use Filament\Pages\Dashboard\Actions\FilterAction;
 use Filament\Pages\Dashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\Support\Htmlable;
 use BackedEnum;
 use UnitEnum;
 
