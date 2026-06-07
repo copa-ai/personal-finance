@@ -4,9 +4,14 @@ namespace App\Filament\Resources\Expenses\Tables;
 
 use App\Models\Expense;
 use App\Models\User;
+use App\Services\BalanceExpensesService;
+use Carbon\Carbon;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Notifications\Notification;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -14,6 +19,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
 
 class ExpensesTable
@@ -108,6 +114,58 @@ class ExpensesTable
                 EditAction::make(),
                 CommentsAction::make()
                     ->mentionables(fn (Model $record) => User::query()->get()),
+            ])
+            ->headerActions([
+                Action::make('balanceExpenses')
+                    ->label('Cuadrar gastos')
+                    ->icon('heroicon-o-scale')
+                    ->modalHeading('Cuadrar gastos pendientes')
+                    ->modalSubmitActionLabel('Ejecutar')
+                    ->form([
+                        DatePicker::make('start_date')
+                            ->label('Desde')
+                            ->helperText('Opcional. Si no se indica, se procesará todo el histórico.'),
+                        DatePicker::make('end_date')
+                            ->label('Hasta')
+                            ->helperText('Opcional. Puede usarse sin fecha inicial.'),
+                    ])
+                    ->action(function (array $data): void {
+                        try {
+                            $summary = app(BalanceExpensesService::class)->execute(
+                                filled($data['start_date'] ?? null) ? Carbon::parse($data['start_date']) : null,
+                                filled($data['end_date'] ?? null) ? Carbon::parse($data['end_date']) : null,
+                            );
+
+                            $rangeText = [];
+
+                            if (filled($data['start_date'] ?? null)) {
+                                $rangeText[] = 'desde ' . $data['start_date'];
+                            }
+
+                            if (filled($data['end_date'] ?? null)) {
+                                $rangeText[] = 'hasta ' . $data['end_date'];
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Cuadre de gastos completado')
+                                ->body(sprintf(
+                                    'Se revisaron %d gastos con subgastos pendientes y se crearon %d ajustes. %s',
+                                    $summary['matched_count'],
+                                    $summary['adjusted_count'],
+                                    $rangeText !== [] ? 'Rango aplicado: ' . implode(' ', $rangeText) . '.' : 'Se procesó el histórico completo.',
+                                ))
+                                ->send();
+                        } catch (Throwable $e) {
+                            report($e);
+
+                            Notification::make()
+                                ->danger()
+                                ->title('No se pudieron cuadrar los gastos')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
