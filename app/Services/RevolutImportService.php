@@ -25,15 +25,15 @@ class RevolutImportService
 
     /**
      * @return array{
-     *     imported_count: int,
-     *     skipped_duplicate_count: int,
-     *     skipped_duplicates: array<int, array{
-     *         line: int,
-     *         date: string,
-     *         description: string,
-     *         total: string,
-     *         rounded_total: int
-     *     }>
+     * imported_count: int,
+     * skipped_duplicate_count: int,
+     * skipped_duplicates: array<int, array{
+     * line: int,
+     * date: string,
+     * description: string,
+     * total: string,
+     * rounded_total: int
+     * }>
      * }
      */
     public function importCsv(string $csvPath, bool $leaveSubexpensesEmpty = false, bool $allowDuplicates = false): array
@@ -65,13 +65,25 @@ class RevolutImportService
 
         DB::transaction(function () use ($rows, $csvPath, $leaveSubexpensesEmpty, $allowDuplicates, &$summary): void {
             foreach ($rows as $row) {
-                if ($this->normalizeText($row['Tipo'] ?? null) !== 'Pago con tarjeta') {
+                $type = $this->normalizeText($row['Tipo'] ?? null);
+
+                // Solo procesamos pagos con tarjeta y transferencias
+                if ($type !== 'Card Payment' && $type !== 'Transfer') {
+                    continue;
+                }
+
+                $signedTotal = $this->normalizeMoney($row['Importe'] ?? null);
+
+                // Si es Transferencia, solo agregamos los Gastos (transferencias negativas)
+                if ($type === 'Transfer' && $signedTotal >= 0) {
                     continue;
                 }
 
                 $description = $this->normalizeDescription($row['Descripción'] ?? null);
                 $date = $this->parseDate($row['Fecha de inicio'] ?? null);
-                $total = $this->normalizeMoney($row['Importe'] ?? null);
+                
+                // Convertimos a valor absoluto para registrar el gasto
+                $total = abs($signedTotal);
                 $roundedTotal = (int) round($total);
 
                 if (! $allowDuplicates && $this->isDuplicateExpense($date, $roundedTotal)) {
@@ -230,7 +242,7 @@ class RevolutImportService
             throw new RuntimeException("Importe inválido: {$value}");
         }
 
-        return abs((float) $normalized);
+        return (float) $normalized;
     }
 
     private function parseDate(mixed $value): Carbon
