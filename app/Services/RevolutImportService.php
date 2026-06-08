@@ -65,22 +65,22 @@ class RevolutImportService
 
         DB::transaction(function () use ($rows, $csvPath, $leaveSubexpensesEmpty, $allowDuplicates, &$summary): void {
             foreach ($rows as $row) {
-                $type = $this->normalizeText($row['Tipo'] ?? null);
+                $type = $this->normalizeText($row['Type'] ?? null);
 
                 // Solo procesamos pagos con tarjeta y transferencias
                 if ($type !== 'Card Payment' && $type !== 'Transfer') {
                     continue;
                 }
 
-                $signedTotal = $this->normalizeMoney($row['Importe'] ?? null);
+                $signedTotal = $this->normalizeMoney($row['Amount'] ?? null);
 
                 // Si es Transferencia, solo agregamos los Gastos (transferencias negativas)
                 if ($type === 'Transfer' && $signedTotal >= 0) {
                     continue;
                 }
 
-                $description = $this->normalizeDescription($row['Descripción'] ?? null);
-                $date = $this->parseDate($row['Fecha de inicio'] ?? null);
+                $description = $this->normalizeDescription($row['Description'] ?? null);
+                $date = $this->parseDate($row['Started Date'] ?? null);
                 
                 // Convertimos a valor absoluto para registrar el gasto
                 $total = abs($signedTotal);
