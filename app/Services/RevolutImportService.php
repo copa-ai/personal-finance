@@ -165,11 +165,12 @@ class RevolutImportService
 
             $headers = array_map(fn ($header): string => $this->normalizeHeader($header), $headers);
 
+            // Columns: Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance
             $requiredHeaders = [
-                'Tipo',
-                'Fecha de inicio',
-                'Descripción',
-                'Importe',
+                'Type',
+                'Started Date',
+                'Description',
+                'Amount',
             ];
 
             foreach ($requiredHeaders as $requiredHeader) {
