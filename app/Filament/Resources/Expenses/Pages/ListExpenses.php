@@ -22,6 +22,59 @@ class ListExpenses extends ListRecords
     {
         return [
             CreateAction::make(),
+
+            Action::make('balanceExpenses')
+                    ->label('Cuadrar gastos')
+                    ->icon('heroicon-o-scale')
+                    ->modalHeading('Cuadrar gastos pendientes')
+                    ->modalSubmitActionLabel('Ejecutar')
+                    ->form([
+                        DatePicker::make('start_date')
+                            ->label('Desde')
+                            ->helperText('Opcional. Si no se indica, se procesará todo el histórico.'),
+                        DatePicker::make('end_date')
+                            ->label('Hasta')
+                            ->helperText('Opcional. Puede usarse sin fecha inicial.'),
+                    ])
+                    ->action(function (array $data): void {
+                        try {
+                            $summary = app(BalanceExpensesService::class)->execute(
+                                filled($data['start_date'] ?? null) ? Carbon::parse($data['start_date']) : null,
+                                filled($data['end_date'] ?? null) ? Carbon::parse($data['end_date']) : null,
+                            );
+
+                            $rangeText = [];
+
+                            if (filled($data['start_date'] ?? null)) {
+                                $rangeText[] = 'desde ' . $data['start_date'];
+                            }
+
+                            if (filled($data['end_date'] ?? null)) {
+                                $rangeText[] = 'hasta ' . $data['end_date'];
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Cuadre de gastos completado')
+                                ->body(sprintf(
+                                    'Se revisaron %d gastos con subgastos pendientes y se crearon %d ajustes. %s',
+                                    $summary['matched_count'],
+                                    $summary['adjusted_count'],
+                                    $rangeText !== [] ? 'Rango aplicado: ' . implode(' ', $rangeText) . '.' : 'Se procesó el histórico completo.',
+                                ))
+                                ->send();
+                        } catch (Throwable $e) {
+                            report($e);
+
+                            Notification::make()
+                                ->danger()
+                                ->title('No se pudieron cuadrar los gastos')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
+            
+
             Action::make('importRevolut')
                 ->label('Importar Revolut')
                 ->icon('heroicon-o-arrow-up-tray')
