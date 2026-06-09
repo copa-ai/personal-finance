@@ -39,7 +39,8 @@ class RevolutImportService
      * date: string,
      * description: string,
      * total: string
-     * }>
+     * }>,
+     * duplicates_report_path: string|null
      * }
      */
     public function importCsv(string $csvPath, bool $leaveSubexpensesEmpty = false, bool $allowDuplicates = false): array
@@ -67,6 +68,7 @@ class RevolutImportService
             'imported_count' => 0,
             'skipped_duplicate_count' => 0,
             'skipped_duplicates' => [],
+            'duplicates_report_path' => null,
         ];
 
         DB::transaction(function () use ($rows, $csvPath, $leaveSubexpensesEmpty, $allowDuplicates, &$summary): void {
@@ -141,13 +143,46 @@ class RevolutImportService
             }
         });
 
+        // Almacenamiento de duplicados en un JSON si existen elementos omitidos
+        if ($summary['skipped_duplicate_count'] > 0) {
+            $summary['duplicates_report_path'] = $this->saveDuplicatesReport($disk, $csvPath, $summary['skipped_duplicates']);
+        }
+
         Log::info(self::LOG_PREFIX . ' Importación de Revolut completada', [
             'csv_path' => $csvPath,
             'imported_count' => $summary['imported_count'],
             'skipped_duplicate_count' => $summary['skipped_duplicate_count'],
+            'duplicates_report_path' => $summary['duplicates_report_path'],
         ]);
 
         return $summary;
+    }
+
+    /**
+     * Guarda el array de duplicados en un archivo JSON dentro del storage local.
+     *
+     * @param \Illuminate\Contracts\Filesystem\Filesystem $disk
+     * @param array<int, array<string, mixed>> $duplicates
+     */
+    private function saveDuplicatesReport($disk, string $csvPath, array $duplicates): string
+    {
+        // Extraemos el nombre base del archivo original (ej: 'revolut_2026_05.csv' -> 'revolut_2026_05')
+        $baseName = pathinfo($csvPath, PATHINFO_FILENAME);
+        
+        // Generamos un nombre único usando un timestamp
+        $timestamp = now()->format('Ymd_His');
+        $reportPath = "revolut/duplicates/{$baseName}_duplicates_{$timestamp}.json";
+
+        $jsonData = json_encode([
+            'source_csv' => $csvPath,
+            'generated_at' => now()->toIso8601String(),
+            'total_skipped' => count($duplicates),
+            'items' => $duplicates
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        $disk->put($reportPath, $jsonData);
+
+        return $disk->path($reportPath); // Retorna la ruta absoluta para el summary/logs
     }
 
     /**
