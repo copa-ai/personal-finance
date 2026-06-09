@@ -35,14 +35,11 @@ class ExpenseAnalysisItemsTable extends TableWidget
                     ->dateTime()
                     ->sortable(),
                 TextColumn::make('establishment_name')
-                    ->label('Establecimiento')
-                    ->searchable(),
+                    ->label('Establecimiento'),
                 TextColumn::make('effective_category_name')
-                    ->label('Categoría efectiva')
-                    ->searchable(),
+                    ->label('Categoría efectiva'),
                 TextColumn::make('concept')
                     ->label('Concepto')
-                    ->searchable()
                     ->wrap(),
                 TextColumn::make('quantity')
                     ->label('Cantidad')
