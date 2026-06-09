@@ -31,6 +31,7 @@ class ExpenseAnalysisItemsTable extends TableWidget
             ->defaultSort('expense_date', 'desc')
             ->columns([
                 TextColumn::make('expense_date')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Fecha')
                     ->dateTime()
                     ->sortable(),
@@ -45,20 +46,18 @@ class ExpenseAnalysisItemsTable extends TableWidget
                     ->label('Cantidad')
                     ->numeric(decimalPlaces: 3)
                     ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                 TextColumn::make('unit_price')
                     ->label('Precio unitario')
                     ->local_money()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                 TextColumn::make('line_total')
                     ->label('Total línea')
                     ->local_money()
                     ->summarize(Sum::make())
-                    ->sortable(),
-                TextColumn::make('expense_total')
-                    ->label('Total gasto')
-                    ->local_money()
-                    ->sortable(),
+                    ->sortable()
             ])
             ->recordActions([
                 Action::make('openExpense')

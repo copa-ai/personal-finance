@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
+use Filament\Tables\Columns\Summarizers\Sum;
 
 class ExpenseItemsTable
 {
@@ -36,6 +37,7 @@ class ExpenseItemsTable
                     ->sortable(),
                 TextColumn::make('line_total')
                     ->label('Total de Línea')
+                    ->summarize(Sum::make())
                     ->local_money()
                     ->sortable(),
                 IconColumn::make('is_consumable')

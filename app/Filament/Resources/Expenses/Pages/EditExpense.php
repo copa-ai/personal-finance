@@ -9,6 +9,7 @@ use App\Models\Expense;
 use App\Models\OcrJob;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -65,7 +66,8 @@ class EditExpense extends EditRecord
                         ->body('Te avisaremos cuando finalice el procesamiento.')
                         ->send();
                 }),
-            DeleteAction::make(),
+                ViewAction::make(),
+                DeleteAction::make(),
         ];
     }
 }

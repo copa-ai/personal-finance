@@ -56,8 +56,15 @@ class ExpensesTable
                     ->color(fn (?string $state): string => filled($state) ? 'success' : 'gray'),
                 TextColumn::make('pending_review')
                     ->label('Pendiente de Revisar')
-                    ->toggleable(isToggledHiddenByDefault: false)
-                    ->getStateUsing(fn (Expense $record): bool => $record->pending_review || $record->hasPendingSubexpenses())
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(fn (Expense $record): bool => $record->pending_review)
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
+                    ->badge()
+                    ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
+                TextColumn::make('pending_subexpenses')
+                    ->label('Subgastos pendientes')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(fn (Expense $record): bool => $record->hasPendingSubexpenses())
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
                     ->badge()
                     ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
@@ -74,16 +81,11 @@ class ExpensesTable
                 \Filament\Tables\Filters\SelectFilter::make('status')
                     ->options(\App\Enums\ExpenseStatus::class)
                     ->label('Estado'),
-                Filter::make('pending_subexpenses')
+                \Filament\Tables\Filters\Filter::make('pending_subexpenses')
                     ->label('Subgastos pendientes')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->withPendingSubexpenses())
                     ->indicator('Subgastos pendientes'),
-                Filter::make('pending_review')
-                    ->label('Pendiente de revisar')
-                    ->toggle()
-                    ->query(fn (Builder $query): Builder => $query->where('pending_review', true))
-                    ->indicator('Pendiente de revisar'),
                 \Filament\Tables\Filters\Filter::make('date')
                     ->label('Fecha')
                     ->form([

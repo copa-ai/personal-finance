@@ -32,7 +32,7 @@ class Expense extends Model implements Commentable
         'import_csv_path',
         'status',
         'ticket_photo_hash',
-        'pending_review',
+        'pending_review',  // Este campo nos sirve para saber si fue creado por OCR. Aunque cuadrase perfectamente, el OcrService lo deja marcado para revisión manual.
         'created_at',
     ];
 
