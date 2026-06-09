@@ -311,9 +311,9 @@ class RevolutImportService
         
         // Ampliamos el rango a fecha_csv +/- 1 día
         $targetDates = [
-            $date->copy()->subDay()->toDateString(),
+            // $date->copy()->subDay()->toDateString(),
             $date->toDateString(),
-            $date->copy()->addDay()->toDateString(),
+            // $date->copy()->addDay()->toDateString(),
         ];
 
         foreach ($targetDates as $targetDate) {
