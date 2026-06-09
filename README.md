@@ -156,4 +156,9 @@ Tareas en segundo plano (Laravel Scheduler)
 
 Los backups de base de datos se guardan en `storage/app/private/backups/postgres` por defecto.
 
+Para hacer backup manual:
+"""
+docker exec -i personal_finance_db env PGPASSWORD=secret pg_dump -U laravel -d personal_finance | gzip > backup.sql.gz
+"""
+
 Todas las escrituras críticas se ejecutan dentro de transacciones Laravel. Las consultas pesadas utilizan materialized views. El sistema está preparado para Filament Resources y Actions.
