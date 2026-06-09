@@ -59,9 +59,6 @@ class ExpenseAnalysisItemsTable extends TableWidget
                     ->label('Total gasto')
                     ->local_money()
                     ->sortable(),
-                TextColumn::make('item_type')
-                    ->label('Tipo')
-                    ->badge(),
             ])
             ->recordActions([
                 Action::make('openExpense')
