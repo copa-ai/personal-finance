@@ -30,6 +30,8 @@ class RevolutImportService
      */
     private array $loadedDates = [];
 
+    private array $manuallyAddedSummary = [];
+
     /**
      * @return array{
      * imported_count: int,
@@ -145,7 +147,7 @@ class RevolutImportService
 
         // Almacenamiento de duplicados en un JSON si existen elementos omitidos
         if ($summary['skipped_duplicate_count'] > 0) {
-            $summary['duplicates_report_path'] = $this->saveDuplicatesReport($disk, $csvPath, $summary['skipped_duplicates']);
+            $summary['duplicates_report_path'] = $this->saveDuplicatesReport($disk, $csvPath, $this->manuallyAddedSummary);
         }
 
         Log::info(self::LOG_PREFIX . ' Importación de Revolut completada', [
@@ -322,17 +324,27 @@ class RevolutImportService
 
                 Expense::query()
                     ->whereDate('date', $targetDate)
-                    ->whereNull('import_csv_path') // Excluimos gastos que ya posean un import_csv_path
                     ->whereNotNull('total')
-                    ->get(['total'])
+                    ->get(['total', 'import_csv_path', 'id'])
                     ->each(function (Expense $expense) use ($targetDate): void {
+                        $manually_added = ! isset($expense->import_csv_path) || $expense->import_csv_path === null;
                         $totalStr = number_format((float) $expense->total, 2, '.', '');
                         $this->duplicateIndex[$targetDate][$totalStr] = true;
+                        $this->manuallyAddedIndex[$targetDate][$totalStr] = $expense->id;
                     });
             }
 
             // Comprobación exacta con dos decimales en memoria
             if (isset($this->duplicateIndex[$targetDate][$formattedTotal])) {
+                // Si se encuentra en agreagas manualmente, se agrega manuallyAddedSummary
+                if (isset($this->manuallyAddedIndex[$targetDate][$formattedTotal])) {
+                    $this->manuallyAddedSummary[] = [
+                        'date' => $date,
+                        'targetDate' => $targetDate,
+                        'total' => $formattedTotal,
+                        'expense_id' => $this->manuallyAddedIndex[$targetDate][$formattedTotal],
+                    ];
+                }
                 return true;
             }
         }
