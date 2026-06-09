@@ -19,9 +19,16 @@ class RevolutImportService
     private const LOG_PREFIX = '[RevolutImportService]';
 
     /**
-     * @var array<string, array<int, bool>>
+     * Índice en memoria para detectar duplicados dentro de la misma importación y base de datos.
+     * @var array<string, array<string, bool>>
      */
     private array $duplicateIndex = [];
+
+    /**
+     * Registro de fechas ya consultadas en la base de datos para evitar consultas repetitivas (N+1).
+     * @var array<string, bool>
+     */
+    private array $loadedDates = [];
 
     /**
      * @return array{
@@ -31,8 +38,7 @@ class RevolutImportService
      * line: int,
      * date: string,
      * description: string,
-     * total: string,
-     * rounded_total: int
+     * total: string
      * }>
      * }
      */
@@ -84,16 +90,15 @@ class RevolutImportService
                 
                 // Convertimos a valor absoluto para registrar el gasto
                 $total = abs($signedTotal);
-                $roundedTotal = (int) round($total);
+                $formattedTotal = number_format($total, 2, '.', '');
 
-                if (! $allowDuplicates && $this->isDuplicateExpense($date, $roundedTotal)) {
+                if (! $allowDuplicates && $this->isDuplicateExpense($date, $total)) {
                     $summary['skipped_duplicate_count']++;
                     $summary['skipped_duplicates'][] = [
                         'line' => $row['__line'],
                         'date' => $date->toDateString(),
                         'description' => $description,
-                        'total' => number_format($total, 2, '.', ''),
-                        'rounded_total' => $roundedTotal,
+                        'total' => $formattedTotal,
                     ];
 
                     continue;
@@ -106,7 +111,7 @@ class RevolutImportService
                 $expense = Expense::query()->create([
                     'establishment_id' => $establishment->id,
                     'date' => $date,
-                    'total' => number_format($total, 2, '.', ''),
+                    'total' => $formattedTotal,
                     'import_csv_path' => $csvPath,
                     'status' => ExpenseStatus::PAID,
                     'pending_review' => false,
@@ -119,7 +124,7 @@ class RevolutImportService
                         'category_id' => null,
                         'concept' => $description,
                         'quantity' => 1,
-                        'unit_price' => number_format($total, 2, '.', ''),
+                        'unit_price' => $formattedTotal,
                         'tags' => [],
                         'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
                         'is_consumable' => true,
@@ -131,7 +136,7 @@ class RevolutImportService
                 $summary['imported_count']++;
 
                 if (! $allowDuplicates) {
-                    $this->markDuplicateExpense($date, $roundedTotal);
+                    $this->markDuplicateExpense($date, $total);
                 }
             }
         });
@@ -263,27 +268,52 @@ class RevolutImportService
         return $date;
     }
 
-    private function isDuplicateExpense(Carbon $date, int $roundedTotal): bool
+    private function isDuplicateExpense(Carbon $date, float $total): bool
     {
-        $dayKey = $date->toDateString();
+        $formattedTotal = number_format($total, 2, '.', '');
+        
+        // Ampliamos el rango a fecha_csv +/- 1 día
+        $targetDates = [
+            $date->copy()->subDay()->toDateString(),
+            $date->toDateString(),
+            $date->copy()->addDay()->toDateString(),
+        ];
 
-        if (! array_key_exists($dayKey, $this->duplicateIndex)) {
-            $this->duplicateIndex[$dayKey] = [];
+        foreach ($targetDates as $targetDate) {
+            // Lazy load para cada fecha en el rango para evitar consultas constantes
+            if (! isset($this->loadedDates[$targetDate])) {
+                $this->loadedDates[$targetDate] = true;
+                $this->duplicateIndex[$targetDate] = $this->duplicateIndex[$targetDate] ?? [];
 
-            Expense::query()
-                ->whereDate('date', $dayKey)
-                ->whereNotNull('total')
-                ->get(['total'])
-                ->each(function (Expense $expense) use ($dayKey): void {
-                    $this->duplicateIndex[$dayKey][(int) round((float) $expense->total)] = true;
-                });
+                Expense::query()
+                    ->whereDate('date', $targetDate)
+                    ->whereNull('import_csv_path') // Excluimos gastos que ya posean un import_csv_path
+                    ->whereNotNull('total')
+                    ->get(['total'])
+                    ->each(function (Expense $expense) use ($targetDate): void {
+                        $totalStr = number_format((float) $expense->total, 2, '.', '');
+                        $this->duplicateIndex[$targetDate][$totalStr] = true;
+                    });
+            }
+
+            // Comprobación exacta con dos decimales en memoria
+            if (isset($this->duplicateIndex[$targetDate][$formattedTotal])) {
+                return true;
+            }
         }
 
-        return isset($this->duplicateIndex[$dayKey][$roundedTotal]);
+        return false;
     }
 
-    private function markDuplicateExpense(Carbon $date, int $roundedTotal): void
+    private function markDuplicateExpense(Carbon $date, float $total): void
     {
-        $this->duplicateIndex[$date->toDateString()][$roundedTotal] = true;
+        $formattedTotal = number_format($total, 2, '.', '');
+        $dateStr = $date->toDateString();
+        
+        if (! isset($this->duplicateIndex[$dateStr])) {
+            $this->duplicateIndex[$dateStr] = [];
+        }
+        
+        $this->duplicateIndex[$dateStr][$formattedTotal] = true;
     }
 }
