@@ -330,7 +330,9 @@ class RevolutImportService
                         $manually_added = ! isset($expense->import_csv_path) || $expense->import_csv_path === null;
                         $totalStr = number_format((float) $expense->total, 2, '.', '');
                         $this->duplicateIndex[$targetDate][$totalStr] = true;
-                        $this->manuallyAddedIndex[$targetDate][$totalStr] = $expense->id;
+                        if ($manually_added) {
+                            $this->manuallyAddedIndex[$targetDate][$totalStr] = $expense->id;
+                        }
                     });
             }
 
