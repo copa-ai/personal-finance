@@ -44,7 +44,7 @@ class ExpenseForm
                 ->options(ExpenseStatus::class)
                 ->default('PAID')
                 ->required(),
-            Toogle::make('pending_review')
+            Toggle::make('pending_review')
                 ->label('Pendiente de Revisar')
                 ->helperText('Desmarcar esta opción para indicar que el gasto ha sido revisado y aprobado.'),
             Toggle::make('create_single_item')

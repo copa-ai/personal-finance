@@ -65,6 +65,9 @@ class ExpenseInfolist
                             ->disk('local')
                             ->visibility('private')
                             ->columnSpanFull(),
+                        TextEntry::make('pending_review')
+                            ->label('Pendiente de Revisar')
+                            ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
                     ]),
                 Section::make('Comentarios')
                     ->components([
