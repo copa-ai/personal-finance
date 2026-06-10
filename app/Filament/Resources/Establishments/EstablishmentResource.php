@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Establishments;
 
 use App\Filament\Resources\Establishments\Pages\CreateEstablishment;
-use App\Filament\Resources\Establishments\Pages\EditEstablishment;
 use App\Filament\Resources\Establishments\Pages\ListEstablishments;
 use App\Filament\Resources\Establishments\Tables\EstablishmentsTable;
 use App\Filament\Resources\Establishments\Schemas\EstablishmentForm;
@@ -42,8 +41,7 @@ class EstablishmentResource extends Resource
     {
         return [
             'index' => ListEstablishments::route('/'),
-            'create' => CreateEstablishment::route('/create'),
-            'edit' => EditEstablishment::route('/{record}/edit'),
+            'create' => CreateEstablishment::route('/create')
         ];
     }
 
