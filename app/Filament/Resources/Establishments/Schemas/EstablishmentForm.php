@@ -14,22 +14,18 @@ class EstablishmentForm
     public static function components(): array
     {
         return [
-            Section::make('Establishment Data')
-                ->columns(2)
-                ->schema([
-                    TextInput::make('name')
-                        ->label('Name')
-                        ->required()
-                        ->maxLength(150),
-                    Select::make('category_id')
-                        ->label('Category')
-                        ->placeholder('No category')
-                        ->relationship('category', 'name')
-                        ->preload()
-                        ->createOptionForm(CategoryForm::components())
-                        ->searchable()
-                        ->nullable(),
-                ]),
+            TextInput::make('name')
+                ->label('Name')
+                ->required()
+                ->maxLength(150),
+            Select::make('category_id')
+                ->label('Category')
+                ->placeholder('No category')
+                ->relationship('category', 'name')
+                ->preload()
+                ->createOptionForm(CategoryForm::components())
+                ->searchable()
+                ->nullable(),
         ];
     }
 
