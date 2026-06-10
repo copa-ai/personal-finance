@@ -123,13 +123,12 @@ class ExpenseAnalyticsService
                 filled($filters['month'] ?? null),
                 function (Builder $query) use ($filters) {
                     try {
-                        // Construimos una fecha válida (ej: '2026-06' -> '2026-06-01')
                         $date = CarbonImmutable::parse($filters['month'] . '-01');
                         
-                        // Filtramos eficientemente entre el primer y último día del mes
+                        // CAMBIO AQUÍ: Usamos toDateTimeString() para incluir las horas límites
                         return $query->whereBetween('expenses.date', [
-                            $date->startOfMonth()->toDateString(),
-                            $date->endOfMonth()->toDateString(),
+                            $date->startOfMonth()->toDateTimeString(), // 2026-06-01 00:00:00
+                            $date->endOfMonth()->toDateTimeString(),   // 2026-06-30 23:59:59
                         ]);
                     } catch (\Throwable) {
                         return $query;
