@@ -8,15 +8,13 @@ use App\Filament\Widgets\ExpenseAnalysisItemsTable;
 use App\Filament\Widgets\ExpenseAnalysisOverview;
 use App\Services\ExpenseAnalyticsService;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard\Actions\FilterAction;
 use Filament\Pages\Dashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersAction;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
-use BackedEnum;
-use UnitEnum;
+use Illuminate\Support\Carbon;
 
 class ExpenseAnalysis extends Dashboard
 {
@@ -57,23 +55,16 @@ class ExpenseAnalysis extends Dashboard
     }
 
     /**
-     * Descripción / Subtítulo dinámico con el rango de fechas
+     * Descripción / Subtítulo dinámico con el mes seleccionado
      */
     public function getSubheading(): ?string
     {
-        $startDate = $this->filters['startDate'] ?? null;
-        $endDate = $this->filters['endDate'] ?? null;
+        $month = $this->filters['month'] ?? null;
 
-        if ($startDate && $endDate) {
-            return "Mostrando datos desde el {$startDate} hasta el {$endDate}";
-        }
-
-        if ($startDate) {
-            return "Mostrando datos desde el {$startDate}";
-        }
-
-        if ($endDate) {
-            return "Mostrando datos hasta el {$endDate}";
+        if ($month) {
+            // Convertimos el formato 'YYYY-MM' a un objeto Carbon para formatearlo en texto
+            $date = Carbon::parse($month . '-01');
+            return "Mostrando datos de " . ucfirst($date->translatedFormat('F Y'));
         }
 
         return 'Mostrando el histórico completo de gastos';
@@ -90,10 +81,7 @@ class ExpenseAnalysis extends Dashboard
             return null;
         }
 
-        // Recuperamos las opciones del servicio para buscar el nombre comercial/legible
-        $categories = app(ExpenseAnalyticsService::class)->categoryOptions();
-
-        return $categories[$categoryId] ?? null;
+        return app(ExpenseAnalyticsService::class)->categoryOptions()[$categoryId] ?? null;
     }
 
     public function persistsFiltersInSession(): bool
@@ -125,10 +113,24 @@ class ExpenseAnalysis extends Dashboard
     protected function getFilterSchema(): array
     {
         return [
-            DatePicker::make('startDate')
-                ->label('Desde'),
-            DatePicker::make('endDate')
-                ->label('Hasta'),
+            Select::make('month')
+                ->label('Mes')
+                ->placeholder('Todos los meses')
+                ->searchable()
+                ->options(function () {
+                    $options = [];
+                    $start = Carbon::now()->startOfMonth();
+
+                    // Generamos los últimos 24 meses de manera dinámica
+                    for ($i = 0; $i < 24; $i++) {
+                        $month = $start->copy()->subMonths($i);
+                        // Clave: '2026-06', Valor: 'Junio 2026'
+                        $options[$month->format('Y-m')] = ucfirst($month->translatedFormat('F Y'));
+                    }
+
+                    return $options;
+                }),
+
             Select::make('categoryId')
                 ->label('Categoría')
                 ->placeholder('Todas')

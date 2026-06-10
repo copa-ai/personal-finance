@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ExpenseItem;
-use Carbon\CarbonInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -76,6 +75,10 @@ class ExpenseAnalyticsService
         return (float) $this->baseAggregationQuery($filters)->sum('expense_items.line_total');
     }
 
+    /**
+     * Mantiene el nombre por compatibilidad con tus widgets, 
+     * pero ahora calcula el total del mes ignorando la categoría.
+     */
     public function totalForDateRange(array $filters): float
     {
         $filtersWithoutCategory = $filters;
@@ -106,6 +109,9 @@ class ExpenseAnalyticsService
         return $this->baseItemQuery($filters);
     }
 
+    /**
+     * Consulta base modificada para filtrar por el mes seleccionado ('YYYY-MM')
+     */
     protected function baseItemQuery(array $filters): Builder
     {
         return ExpenseItem::query()
@@ -114,12 +120,21 @@ class ExpenseAnalyticsService
             ->leftJoin('categories as item_categories', 'expense_items.category_id', '=', 'item_categories.id')
             ->leftJoin('categories as establishment_categories', 'establishments.category_id', '=', 'establishment_categories.id')
             ->when(
-                filled($this->normalizeDateFilter($filters['startDate'] ?? null)),
-                fn (Builder $query) => $query->whereDate('expenses.date', '>=', $this->normalizeDateFilter($filters['startDate'] ?? null)),
-            )
-            ->when(
-                filled($this->normalizeDateFilter($filters['endDate'] ?? null)),
-                fn (Builder $query) => $query->whereDate('expenses.date', '<=', $this->normalizeDateFilter($filters['endDate'] ?? null)),
+                filled($filters['month'] ?? null),
+                function (Builder $query) use ($filters) {
+                    try {
+                        // Construimos una fecha válida (ej: '2026-06' -> '2026-06-01')
+                        $date = CarbonImmutable::parse($filters['month'] . '-01');
+                        
+                        // Filtramos eficientemente entre el primer y último día del mes
+                        return $query->whereBetween('expenses.date', [
+                            $date->startOfMonth()->toDateString(),
+                            $date->endOfMonth()->toDateString(),
+                        ]);
+                    } catch (\Throwable) {
+                        return $query;
+                    }
+                }
             )
             ->when(
                 filled($filters['categoryId'] ?? null),
@@ -128,30 +143,6 @@ class ExpenseAnalyticsService
                     [(string) $filters['categoryId']],
                 ),
             );
-    }
-
-    private function normalizeDateFilter(mixed $value): ?string
-    {
-        if ($value instanceof CarbonInterface) {
-            return $value->toDateString();
-        }
-
-        if (! is_string($value) || blank($value)) {
-            return null;
-        }
-
-        foreach (['Y-m-d', 'd/m/Y'] as $format) {
-            try {
-                return CarbonImmutable::createFromFormat($format, $value)->toDateString();
-            } catch (\Throwable) {
-            }
-        }
-
-        try {
-            return CarbonImmutable::parse($value)->toDateString();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 
     protected function collapseTopResults(Collection $items, int $limit): Collection
