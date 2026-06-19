@@ -72,9 +72,10 @@ class BalanceExpensesService
 
         $expense->items()->create([
             'category_id' => null,
-            'concept'     => 'Ajuste de descuadre', // Puedes modificar este texto según tus necesidades
+            'concept'     => 'Ajuste de descuadre',
             'quantity'    => 1,
             'unit_price'  => $unitPrice,
+            'movement_type' => MovementType::ADJUSTMENT,
         ]);
     }
 }

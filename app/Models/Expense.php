@@ -126,8 +126,7 @@ class Expense extends Model implements Commentable
     public function isOcrAvailable(): bool
     {
         return !$this->items()
-            ->where('item_type', MovementType::ADJUSTMENT)
-            ->where("concept", "LIKE", "%Ajuste de descuadre%")
+            ->where('movement_type', MovementType::ADJUSTMENT)
             ->exists();
     }
 }
