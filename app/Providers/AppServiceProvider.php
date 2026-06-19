@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Expense;
 use App\Models\ExpenseItem;
 use App\Observers\ExpenseObserver;
+use App\Observers\ExpenseItemObserver;
 use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,5 +28,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Observers
         Expense::observe(ExpenseObserver::class);
+        ExpenseItem::observe(ExpenseItemObserver::class);
     }
 }
