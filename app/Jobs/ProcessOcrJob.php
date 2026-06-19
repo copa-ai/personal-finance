@@ -47,7 +47,7 @@ class ProcessOcrJob implements ShouldQueue
                 throw new \RuntimeException('El gasto asociado al OCR ya no existe.');
             }
 
-            if ($expense->isOcrAvailable()) {
+            if (! $expense->isOcrAvailable()) {
                 throw new \RuntimeException('Este gasto ya tiene líneas. Borra las líneas antes de ejecutar OCR.');
             }
 

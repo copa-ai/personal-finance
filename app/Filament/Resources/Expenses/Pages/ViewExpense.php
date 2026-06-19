@@ -25,7 +25,7 @@ class ViewExpense extends ViewRecord
                 ->visible(fn (Expense $record): bool => filled($record->ticket_photo_hash))
                 ->color(fn (Expense $record): string => $record->isOcrAvailable() ? 'gray' : 'primary')
                 ->action(function (Expense $record): void {
-                    if ($record->isOcrAvailable()) {
+                    if (! $record->isOcrAvailable()) {
                         Notification::make()
                             ->warning()
                             ->title('OCR bloqueado')

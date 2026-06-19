@@ -125,8 +125,9 @@ class Expense extends Model implements Commentable
 
     public function isOcrAvailable(): bool
     {
+        // // OCR is available only when there are no expense items, ignoring adjustment movements.
         return !$this->items()
-            ->where('movement_type', MovementType::ADJUSTMENT)
+            ->where('movement_type', "!=", MovementType::ADJUSTMENT)
             ->exists();
     }
 }
