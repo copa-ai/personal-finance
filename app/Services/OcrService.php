@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
+use App\Enums\MovementType;
 use App\Models\Category;
 use App\Models\Establishment;
 use App\Models\Expense;
@@ -75,7 +76,7 @@ class OcrService
             // Borra el posible ajuste de descuadre.
             ExpenseItem::query()
                 ->where('expense_id', $expense->id)
-                ->where('item_type', ExpenseItemType::ADJUSTMENT)
+                ->where('item_type', MovementType::ADJUSTMENT)
                 ->where("concept", "LIKE", "%Ajuste de descuadre%")
                 ->delete();
 

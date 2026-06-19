@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kirschbaum\Commentions\Contracts\Commentable;
 use Kirschbaum\Commentions\HasComments;
-use App\Enums\ExpenseItemType;
+use App\Enums\MovementType;
 
 class Expense extends Model implements Commentable
 {
@@ -126,7 +126,7 @@ class Expense extends Model implements Commentable
     public function isOcrAvailable(): bool
     {
         return !$this->items()
-            ->where('item_type', ExpenseItemType::ADJUSTMENT)
+            ->where('item_type', MovementType::ADJUSTMENT)
             ->where("concept", "LIKE", "%Ajuste de descuadre%")
             ->exists();
     }
