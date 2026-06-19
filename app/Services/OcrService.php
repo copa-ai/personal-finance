@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\Process;
 
 class OcrService
 {
+
+    public function __construct(private BalanceExpensesService $balance_expenses_service)
+    {
+    }
+
     /**
      * Prefijo para identificar logs de este servicio
      */
@@ -38,6 +43,7 @@ class OcrService
         try {
             $items = $this->extractTicketItems($expense);
             $count = $this->importExpenseItems($expense, $items);
+            $this->balance_expenses_service->createAdjustmentItem($expense);
 
             Log::info(self::LOG_PREFIX . ' Importación desde OCR completada', [
                 'expense_id' => $expenseId,

@@ -55,7 +55,7 @@ class BalanceExpensesService
      * @param Expense $expense
      * @return void
      */
-    protected function createAdjustmentItem(Expense $expense): void
+    public function createAdjustmentItem(Expense $expense): void
     {
         // subexpensesDifferenceCents() devuelve: (Total de Subgastos) - (Total del Gasto)
         // Si el total del gasto es MAYOR, devuelve un valor negativo. Al invertirlo, nos da un precio positivo (añade el faltante).
