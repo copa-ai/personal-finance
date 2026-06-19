@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ExpenseItemType;
 use App\Enums\Recurrence;
+use App\Enums\MovementType;
 use App\Models\Category;
 use App\Models\Establishment;
 use App\Models\Expense;
