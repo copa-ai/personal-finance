@@ -32,7 +32,7 @@ class ExpenseForm
                 ->nullable(),
             DateTimePicker::make('date')
                 ->label('Fecha y Hora')
-                ->format('Y-m-d H:i')
+                ->seconds(false)
                 ->required(),
             TextInput::make('total')
                 ->label('Total (€)')
