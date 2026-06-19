@@ -48,6 +48,14 @@ class ProcessOcrJob implements ShouldQueue
             }
 
             if (! $expense->isOcrAvailable()) {
+                logger()->info([
+                    'expense_id' => $expense->id,
+                    'items_count' => $expense->items()->count(),
+                    'non_adjustment_count' => $expense->items()
+                        ->where('movement_type', '!=', MovementType::ADJUSTMENT)
+                        ->count(),
+                    'ocr_available' => $expense->isOcrAvailable(),
+                ]);
                 throw new \RuntimeException('Este gasto ya tiene líneas. Borra las líneas antes de ejecutar OCR.');
             }
 
