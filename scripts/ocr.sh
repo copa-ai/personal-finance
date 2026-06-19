@@ -55,7 +55,7 @@ IMG="$(base64 -w 0 "$TMP_IMG")"
 TMP_PAYLOAD=$(mktemp)
 
 ESCAPED_PROMPT=$(printf '%s' "$OCR_PROMPT" | sed 's/\\/\\\\/g; s/"/\\"/g')
-printf '{"model":"%s","prompt":"%s","images":["%s"],"stream":false}' \
+printf '{"model":"%s","prompt":"%s","format":"json","images":["%s"],"stream":false}' \
   "$OCR_MODEL" "$ESCAPED_PROMPT" "$IMG" > "$TMP_PAYLOAD"
 
 # Enviamos el archivo temporal con curl usando -d @
