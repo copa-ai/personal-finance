@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kirschbaum\Commentions\Contracts\Commentable;
 use Kirschbaum\Commentions\HasComments;
+use App\Enums\ExpenseItemType;
 
 class Expense extends Model implements Commentable
 {
@@ -120,5 +121,13 @@ class Expense extends Model implements Commentable
             ->whereRaw(
                 "COALESCE((SELECT SUM(line_total) FROM {$itemsTable} WHERE {$itemsTable}.expense_id = {$expensesTable}.id), 0) <> {$expensesTable}.total",
             );
+    }
+
+    public function isOcrAvailable(): bool
+    {
+        return !$this->items()
+            ->where('item_type', ExpenseItemType::ADJUSTMENT)
+            ->where("concept", "LIKE", "%Ajuste de descuadre%")
+            ->exists();
     }
 }

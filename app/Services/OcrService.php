@@ -72,6 +72,14 @@ class OcrService
         return DB::transaction(function () use ($expense, $items, $expenseId): int {
             $expense->refresh();
 
+            // Borra el posible ajuste de descuadre.
+            ExpenseItem::query()
+                ->where('expense_id', $expense->id)
+                ->where('item_type', ExpenseItemType::ADJUSTMENT)
+                ->where("concept", "LIKE", "%Ajuste de descuadre%")
+                ->delete();
+
+            // Mas estrictto que isOcrAvailable, pues requiere que no exista absolutamente ninguna línea, incluyendo ajustes de descuadre.
             if ($expense->items()->exists()) {
                 $existingCount = $expense->items()->count();
                 Log::warning(self::LOG_PREFIX . ' El gasto ya tiene líneas existentes', [
