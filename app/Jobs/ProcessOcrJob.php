@@ -26,7 +26,6 @@ class ProcessOcrJob implements ShouldQueue
 
     public function handle(OcrService $ocrService): void
     {
-        \Log::info("1");
         $ocrJob = OcrJob::query()
             ->with(['expense', 'user'])
             ->findOrFail($this->ocrJobId);
