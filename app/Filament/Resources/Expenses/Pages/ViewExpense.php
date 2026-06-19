@@ -23,7 +23,7 @@ class ViewExpense extends ViewRecord
                 ->label('OCR del ticket')
                 ->icon('heroicon-o-document-magnifying-glass')
                 ->visible(fn (Expense $record): bool => filled($record->ticket_photo_hash))
-                ->color(fn (Expense $record): string => $record->isOcrAvailable() ? 'gray' : 'primary')
+                ->color(fn (Expense $record): string => $record->isOcrAvailable() ? 'primary' : 'gray')
                 ->action(function (Expense $record): void {
                     if (! $record->isOcrAvailable()) {
                         Notification::make()
