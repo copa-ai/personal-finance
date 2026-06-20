@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Expense;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Enums\MovementType;
 
 class BalanceExpensesService
 {
