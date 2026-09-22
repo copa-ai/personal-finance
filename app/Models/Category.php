@@ -54,7 +54,7 @@ class Category extends Model
     public function descendants(): Collection
     {
         $this->loadMissing([
-            'children' => fn (Builder $query) => $query->withoutTrashed(),
+            'children' => fn (HasMany $query) => $query->withoutTrashed(),
         ]);
 
         return $this->children
