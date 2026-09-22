@@ -6,16 +6,8 @@ FROM composer:2 AS composer
 WORKDIR /app
 
 COPY ./composer.json ./composer.lock ./
-# Sin --no-dev: composer.lock trae paquetes (p. ej. rarq/filament-quick-notes) que ya
-# no cuelgan de ningún "require" de composer.json —ni propio ni de ningún plugin— pero
-# cuyo config/ publicado (config/filament-quick-notes.php) sigue referenciando sus
-# clases. El resolutor de autoload de Composer solo genera reglas PSR-4 para paquetes
-# alcanzables desde el árbol de "require", así que con --no-dev esa clase deja de
-# encontrarse y la app rompe en el primer arranque; instalando también los paquetes de
-# desarrollo el árbol se resuelve completo y el autoload sale correcto (así es como
-# arranca hoy en docker-compose, que tampoco usa --no-dev). Sale una imagen algo más
-# grande a cambio de un build que realmente funciona.
 RUN composer install \
+    --no-dev \
     --no-scripts \
     --no-autoloader \
     --prefer-dist \
