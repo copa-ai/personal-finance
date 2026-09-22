@@ -137,11 +137,37 @@ class ExpenseAnalyticsService
             )
             ->when(
                 filled($filters['categoryId'] ?? null),
-                fn (Builder $query) => $query->whereRaw(
-                    'COALESCE(expense_items.category_id, establishments.category_id) = ?',
-                    [(string) $filters['categoryId']],
-                ),
+                function (Builder $query) use ($filters) {
+                    $categoryIds = $this->categoryAndDescendantIds((string) $filters['categoryId']);
+
+                    return $query->whereRaw(
+                        'COALESCE(expense_items.category_id, establishments.category_id) IN ('
+                            . implode(',', array_fill(0, count($categoryIds), '?'))
+                            . ')',
+                        $categoryIds,
+                    );
+                },
             );
+    }
+
+    /**
+     * Una categoría y todos sus hijos (a cualquier profundidad), para que filtrar
+     * por una categoría "padre" incluya también los productos de sus categorías hijas.
+     *
+     * @return array<int, string>
+     */
+    protected function categoryAndDescendantIds(string $categoryId): array
+    {
+        $category = \App\Models\Category::query()->find($categoryId);
+
+        if (! $category) {
+            return [$categoryId];
+        }
+
+        return $category->descendants()
+            ->pluck('id')
+            ->push($category->id)
+            ->all();
     }
 
     protected function collapseTopResults(Collection $items, int $limit): Collection
