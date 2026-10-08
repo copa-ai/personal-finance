@@ -1,0 +1,4 @@
+{
+    "include": [".service/pack_config.json"],
+    "ignore": []
+}

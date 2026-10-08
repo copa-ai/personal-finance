@@ -1,4 +1,12 @@
 {
+    "service_dependencies_directory": "__services__",
+    "metadata_dependencies_directory": "__metadata__",
+    "blocks_directory": "__block__",
+    "dependencies": {
+        "PF_POSTGRES": "dependencies/pf-postgres",
+        "PF_OLLAMA": "dependencies/pf-ollama"
+    },
+    "dependencies_env": true,
     "include": [
         "app",
         "bootstrap",
