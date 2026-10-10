@@ -16,7 +16,7 @@
         }
     },
     "init": {
-        "entry_path": ["usr", "local", "bin", "start.sh"]
+        "entry_path": ["usr", "local", "bin", "pf-entrypoint"]
     },
     "api": [
         {
@@ -52,10 +52,12 @@
         "OLLAMA_OCR_MODEL",
         "OLLAMA_TIMEOUT"
     ],
-    "network": [
+    "possible_environment_workload": [
         {
-            "tags": ["ipv4", "private"],
-            "prose": "Acceso a la base de datos PostgreSQL (DB_HOST/DB_PORT) y, opcionalmente, a un servidor Ollama para el OCR de tickets (OLLAMA_URL)."
+            "workloads": [
+                { "count": 1, "resources": { "mem_limit": 1073741824, "disk_space": 10737418240 } },
+                { "count": 1, "resources": { "mem_limit": 6442450944, "disk_space": 10737418240 } }
+            ]
         }
     ]
 }

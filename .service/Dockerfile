@@ -34,6 +34,8 @@ FROM php:8.4-cli
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         postgresql-client \
+        python3 \
+        python3-venv \
         imagemagick \
         libpq-dev \
         libzip-dev \
@@ -54,9 +56,25 @@ WORKDIR /app
 COPY --from=composer /app ./
 
 COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
-COPY start.sh /usr/local/bin/start.sh
+COPY pf_entrypoint.py /usr/local/bin/pf-entrypoint
 
-RUN chmod +x /usr/local/bin/start.sh scripts/ocr.sh \
+# Orquestación: celaut-service-libraries (node_controller) + bee-rpc, fijadas por commit.
+# --no-deps: bee-rpc pina grpcio==1.56.0 (sin wheel para este Python); se instalan las
+# dependencias reales aparte.
+RUN python3 -m venv /opt/pf-venv \
+    && /opt/pf-venv/bin/pip install --no-cache-dir grpcio "protobuf>=4.23.3" \
+    && /opt/pf-venv/bin/pip install --no-cache-dir --no-deps \
+        https://github.com/bee-rpc-protocol/bee-rpc-over-grpc-py/archive/8049fd86261c0d85445e6c27d363e0c82d5b2958.tar.gz \
+        https://github.com/bee-rpc-protocol/celaut-service-libraries/archive/23459eea47351c75cffffa9318049aad8810ea75.tar.gz \
+    && /opt/pf-venv/bin/python -c "from bee_rpc import client; from node_controller.controller.controller import Controller; print('node_controller ok')"
+
+# Dependencias Celaut empaquetadas por el packer (pf-postgres, pf-ollama) y sus hashes.
+COPY ./__services__ /app/__services__
+COPY ./__metadata__ /app/__metadata__
+COPY ./__block__ /app/__block__
+COPY ./.dependencies /app/.dependencies
+
+RUN chmod +x /usr/local/bin/pf-entrypoint scripts/ocr.sh \
     && mkdir -p \
         storage/app/private \
         storage/framework/cache/data \
