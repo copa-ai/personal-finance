@@ -1,0 +1,72 @@
+{
+ "explains": [],
+ "count": 5,
+ "quotes": [
+  {
+   "exchange": "NMS",
+   "shortname": "Apple Inc.",
+   "quoteType": "EQUITY",
+   "symbol": "AAPL",
+   "index": "quotes",
+   "score": 30287.0,
+   "typeDisp": "Equity",
+   "longname": "Apple Inc.",
+   "exchDisp": "NASDAQ",
+   "sector": "Technology",
+   "industry": "Consumer Electronics",
+   "isYahooFinance": true
+  },
+  {
+   "exchange": "GER",
+   "shortname": "APPLE INC",
+   "quoteType": "EQUITY",
+   "symbol": "APC.DE",
+   "index": "quotes",
+   "score": 20012.0,
+   "typeDisp": "Equity",
+   "longname": "Apple Inc.",
+   "exchDisp": "XETRA",
+   "isYahooFinance": true
+  },
+  {
+   "exchange": "PCX",
+   "shortname": "Roundhill Apple WeeklyPay ETF",
+   "quoteType": "ETF",
+   "symbol": "AAPW",
+   "index": "quotes",
+   "score": 20005.0,
+   "typeDisp": "ETF",
+   "longname": "Roundhill AAPL WeeklyPay ETF",
+   "exchDisp": "NYSEArca",
+   "isYahooFinance": true
+  },
+  {
+   "exchange": "CCC",
+   "shortname": "Apple xStock USD",
+   "quoteType": "CRYPTOCURRENCY",
+   "symbol": "AAPLX-USD",
+   "index": "quotes",
+   "score": 20001.0,
+   "typeDisp": "Cryptocurrency",
+   "exchDisp": "CCC",
+   "isYahooFinance": true
+  },
+  {
+   "exchange": "OPR",
+   "shortname": "AAPL Oct 2026 230.000 call",
+   "quoteType": "OPTION",
+   "symbol": "AAPL261016C00230000",
+   "index": "quotes",
+   "score": 20000.0,
+   "typeDisp": "Option",
+   "isYahooFinance": true
+  }
+ ],
+ "news": [],
+ "nav": [],
+ "lists": [],
+ "researchReports": [],
+ "screenerFieldResults": [],
+ "totalTime": 21,
+ "timeTakenForQuotes": 421
+}

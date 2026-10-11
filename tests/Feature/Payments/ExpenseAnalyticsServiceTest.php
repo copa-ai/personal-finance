@@ -55,4 +55,18 @@ class ExpenseAnalyticsServiceTest extends TestCase
         $this->assertSame(5.0, $service->totalForFilters(['month' => '2026-06', 'categoryId' => $food->id]));
         $this->assertSame(9.0, $service->totalForDateRange(['month' => '2026-06', 'categoryId' => $food->id]));
     }
+
+    public function test_transfers_to_investment_platforms_are_not_spending(): void
+    {
+        $platform = \App\Models\InvestmentPlatform::query()->create(['name' => 'MyInvestor', 'type' => \App\Enums\PlatformType::BROKER]);
+        $broker = \App\Models\Establishment::query()->create(['name' => 'To MyInvestor', 'investment_platform_id' => $platform->id]);
+        $shop = \App\Models\Establishment::query()->create(['name' => 'Mercadona']);
+
+        $transfer = $this->createExpense('500.00', attributes: ['establishment_id' => $broker->id]);
+        $this->addItem($transfer, '1', '500.00');
+        $groceries = $this->createExpense('40.00', attributes: ['establishment_id' => $shop->id]);
+        $this->addItem($groceries, '1', '40.00');
+
+        $this->assertSame(40.0, app(ExpenseAnalyticsService::class)->totalForFilters(['month' => '2026-06']));
+    }
 }

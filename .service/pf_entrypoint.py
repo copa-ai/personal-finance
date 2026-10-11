@@ -1,10 +1,10 @@
 #!/opt/pf-venv/bin/python
-"""Entrypoint de pf-app: levanta PostgreSQL y Ollama como servicios Celaut hijos y luego Laravel.
+"""Entrypoint de pf-app: levanta PostgreSQL, Ollama y pf-market-data como servicios Celaut hijos y luego Laravel.
 
 Usa celaut-service-libraries (node_controller) para pedir al Gateway del nodo las
 instancias de las dependencias empaquetadas en __services__/ (hashes en .dependencies).
 
-Si el ejecutor ya aporta DB_HOST u OLLAMA_URL, ese hijo no se lanza y se usa lo indicado.
+Si el ejecutor ya aporta DB_HOST, OLLAMA_URL o MARKET_DATA_URL, ese hijo no se lanza y se usa lo indicado.
 """
 import base64
 import os
@@ -20,6 +20,12 @@ DEPENDENCIES_FILE = os.path.join(APP_DIR, ".dependencies")
 
 DB_READY_TIMEOUT_S = 300
 OLLAMA_READY_TIMEOUT_S = 600
+MARKET_DATA_READY_TIMEOUT_S = 120
+# Variables que pf-app reenvía a pf-market-data al lanzarlo (claves de proveedores, ntfy).
+MARKET_DATA_ENVS = (
+    "MD_QUOTE_TTL", "MD_HTTP_TIMEOUT", "MD_DNS_SERVERS", "MD_NTFY_URL", "MD_NTFY_TOKEN",
+    "MD_COINGECKO_KEY", "MD_TWELVEDATA_KEY", "MD_FINNHUB_KEY", "MD_ALPHAVANTAGE_KEY",
+)
 MIGRATE_ATTEMPTS = 60
 LAUNCH_ATTEMPTS = 40
 LAUNCH_RETRY_S = 15
@@ -121,8 +127,9 @@ def prepare_dependencies(children: Children) -> None:
     deps = read_dependencies()
     want_db = not os.environ.get("DB_HOST")
     want_ollama = not os.environ.get("OLLAMA_URL")
+    want_market_data = not os.environ.get("MARKET_DATA_URL")
 
-    if (want_db or want_ollama) and not children.connect():
+    if (want_db or want_ollama or want_market_data) and not children.connect():
         if want_db:
             raise SystemExit("[pf] Sin DB_HOST y sin nodo Celaut: no hay base de datos disponible.")
         return
@@ -141,6 +148,20 @@ def prepare_dependencies(children: Children) -> None:
         if not wait_open("pf-postgres", host, port, DB_READY_TIMEOUT_S):
             raise SystemExit(1)
         os.environ["DB_HOST"], os.environ["DB_PORT"] = host, str(port)
+
+    if want_market_data:
+        # Opcional: sin él los precios se apuntan a mano y Mercados avisa de que no hay datos.
+        # Es el único servicio con salida a internet; pf-app sigue sin red exterior.
+        try:
+            if "PF_MARKET_DATA" not in deps:
+                raise RuntimeError("falta PF_MARKET_DATA en .dependencies")
+            md_env = {k: v for k, v in os.environ.items() if k in MARKET_DATA_ENVS and v}
+            host, port = children.launch("pf-market-data", deps["PF_MARKET_DATA"], md_env)
+            if not wait_open("pf-market-data", host, port, MARKET_DATA_READY_TIMEOUT_S):
+                raise RuntimeError("no responde")
+            os.environ["MARKET_DATA_URL"] = f"http://{host}:{port}"
+        except Exception as e:  # noqa: BLE001 - degradación deliberada
+            log(f"AVISO: sin pf-market-data no hay precios automáticos ni Mercados ({e})")
 
     if want_ollama:
         # El OCR es opcional: sin Ollama la app arranca igual, solo falla el OCR de tickets.

@@ -1,0 +1,4 @@
+{
+    "include": ["service", ".service/pack_config.json"],
+    "ignore": ["*.pyc", "__pycache__/"]
+}

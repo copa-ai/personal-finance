@@ -25,6 +25,7 @@ class BankAccount extends Model
 
     public function getTotalValueAttribute(): string
     {
-        return (string) ($this->assets()->sum('current_value') ?? '0');
+        // Los activos migrados a Inversiones ya cuentan allí.
+        return (string) ($this->assets()->whereNull('migrated_at')->sum('current_value') ?? '0');
     }
 }

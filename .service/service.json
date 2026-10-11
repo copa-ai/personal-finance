@@ -53,7 +53,29 @@
         "OLLAMA_TIMEOUT",
         "APP_DISPLAY_TIMEZONE",
         "PF_ADMIN_EMAIL",
-        "PF_ADMIN_PASSWORD"
+        "PF_ADMIN_PASSWORD",
+        "MARKET_DATA_URL",
+        "MARKET_DATA_TIMEOUT",
+        "INVESTMENTS_NTFY",
+        "INVESTMENTS_STALE_PRICE_DAYS",
+        "INVESTMENTS_MATURITY_NOTICE_DAYS",
+        "INVESTMENTS_REBALANCE_THRESHOLD_PP",
+        "INVESTMENTS_PRICE_ALERT_COOLDOWN_HOURS",
+        "MD_QUOTE_TTL",
+        "MD_HTTP_TIMEOUT",
+        "MD_DNS_SERVERS",
+        "MD_NTFY_URL",
+        "MD_NTFY_TOKEN",
+        "MD_COINGECKO_KEY",
+        "MD_TWELVEDATA_KEY",
+        "MD_FINNHUB_KEY",
+        "MD_ALPHAVANTAGE_KEY"
+    ],
+    "network": [
+        {
+            "tags": ["*"],
+            "prose": "Se declara solo para poder delegarla: nodo concede a un hijo únicamente las redes que también declara su padre (docs/NETWORKS.md, Authorization: the Ancestor Chain), y pf-market-data, hijo de este servicio, necesita salida abierta para los datos de mercado. pf-app no hace ninguna petición al exterior: habla con PostgreSQL, Ollama y pf-market-data por la red del nodo, y los widgets de TradingView los carga el navegador del usuario. Un operador que no quiera conceder salida a pf-app puede lanzar pf-market-data aparte y pasar MARKET_DATA_URL; entonces este servicio no lanza el hijo."
+        }
     ],
     "possible_environment_workload": [
         {

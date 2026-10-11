@@ -1,0 +1,43 @@
+{
+    "tag": ["pf-market-data", "market-data"],
+    "architecture": "linux/amd64",
+    "resources": {
+        "at_init": {
+            "mem_limit": 134217728,
+            "disk_space": 536870912
+        },
+        "at_most": {
+            "mem_limit": 268435456,
+            "disk_space": 1073741824
+        }
+    },
+    "init": {
+        "entry_path": ["usr", "local", "bin", "pf-market-data-start"]
+    },
+    "api": [
+        {
+            "port": 8080,
+            "transport": "tcp",
+            "protocol": ["http1.1", "rest"]
+        }
+    ],
+    "envs": [
+        "MD_PORT",
+        "MD_CACHE_PATH",
+        "MD_QUOTE_TTL",
+        "MD_HTTP_TIMEOUT",
+        "MD_DNS_SERVERS",
+        "MD_NTFY_URL",
+        "MD_NTFY_TOKEN",
+        "MD_COINGECKO_KEY",
+        "MD_TWELVEDATA_KEY",
+        "MD_FINNHUB_KEY",
+        "MD_ALPHAVANTAGE_KEY"
+    ],
+    "network": [
+        {
+            "tags": ["*"],
+            "prose": "Salida abierta. El servicio consulta APIs públicas de mercado por nombre de host (Yahoo Finance, Kraken, CoinGecko, Binance, BCE y, si hay clave, Twelve Data, Finnhub y Alpha Vantage; además el servidor ntfy de MD_NTFY_URL). Una etiqueta de hostname no basta: nodo concede las IPs del nombre en TCP 80/443 pero no sirve DNS, y un cliente HTTP que resuelve nombres no puede usar esa concesión (docs/NETWORKS.md, Hostname tags, nodo#389). El servicio estrecha la salida él mismo: antes de cada petición, y de cada redirección, comprueba que la URL es https al puerto 443 de un host exacto de su allowlist (service/config.py, service/netclient.py); las redirecciones a otro host no se siguen y se ignoran los proxies del entorno. Como nodo no configura resolver en el invitado, usa resolvers DNS públicos en UDP/TCP 53 (9.9.9.9, 1.1.1.1, 8.8.8.8; MD_DNS_SERVERS los sustituye). No guarda ni envía datos personales: solo pide cotizaciones públicas y reenvía a ntfy las notificaciones que le manda pf-app. Un operador que quiera que el nodo imponga un límite más estrecho usa service_networks en config.yaml."
+        }
+    ]
+}

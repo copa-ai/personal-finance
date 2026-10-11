@@ -4,7 +4,8 @@
     "blocks_directory": "__block__",
     "dependencies": {
         "PF_POSTGRES": "dependencies/pf-postgres",
-        "PF_OLLAMA": "dependencies/pf-ollama"
+        "PF_OLLAMA": "dependencies/pf-ollama",
+        "PF_MARKET_DATA": "dependencies/pf-market-data"
     },
     "dependencies_env": true,
     "include": [

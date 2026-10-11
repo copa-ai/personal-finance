@@ -37,6 +37,8 @@ class AdminPanelProvider extends PanelProvider
             ->topNavigation()
             ->navigationGroups([
                 'Finanzas',
+                'Inversiones',
+                'Mercados',
                 'Inventario',
                 'IA',
             ])

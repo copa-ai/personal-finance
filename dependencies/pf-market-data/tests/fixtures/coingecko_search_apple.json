@@ -1,0 +1,44 @@
+{
+ "coins": [
+  {
+   "id": "apple-xstock",
+   "name": "Apple xStock",
+   "api_symbol": "apple-xstock",
+   "symbol": "AAPLX",
+   "market_cap_rank": 1091,
+   "thumb": "https://coin-images.coingecko.com/coins/images/55586/thumb/Ticker_AAPL__Company_Name_Apple_Inc.__size_200x200_2x.png",
+   "large": "https://coin-images.coingecko.com/coins/images/55586/large/Ticker_AAPL__Company_Name_Apple_Inc.__size_200x200_2x.png"
+  },
+  {
+   "id": "apple-ondo-tokenized-stock",
+   "name": "Apple (Ondo Tokenized Stock)",
+   "api_symbol": "apple-ondo-tokenized-stock",
+   "symbol": "AAPLON",
+   "market_cap_rank": 1326,
+   "thumb": "https://coin-images.coingecko.com/coins/images/68616/thumb/aaplon_160x160.png",
+   "large": "https://coin-images.coingecko.com/coins/images/68616/large/aaplon_160x160.png"
+  },
+  {
+   "id": "apple-bstocks-tokenized-stock",
+   "name": "Apple (bStocks Tokenized Stock)",
+   "api_symbol": "apple-bstocks-tokenized-stock",
+   "symbol": "AAPLB",
+   "market_cap_rank": 1675,
+   "thumb": "https://coin-images.coingecko.com/coins/images/102175182/thumb/aaplb.png",
+   "large": "https://coin-images.coingecko.com/coins/images/102175182/large/aaplb.png"
+  },
+  {
+   "id": "apple-robinhood-tokenized-stock",
+   "name": "Apple • Robinhood Token",
+   "api_symbol": "apple-robinhood-tokenized-stock",
+   "symbol": "AAPL",
+   "market_cap_rank": 1766,
+   "thumb": "https://coin-images.coingecko.com/coins/images/102174123/thumb/0xaf3d76f1834a1d425780943c99ea8a608f8a93f9.png",
+   "large": "https://coin-images.coingecko.com/coins/images/102174123/large/0xaf3d76f1834a1d425780943c99ea8a608f8a93f9.png"
+  }
+ ],
+ "exchanges": [],
+ "icos": [],
+ "categories": [],
+ "nfts": []
+}

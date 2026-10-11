@@ -23,6 +23,7 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: "${DB_PASSWORD:-secret}"
       OLLAMA_TIMEOUT: 1200
+      MARKET_DATA_URL: http://market-data:8080
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +49,7 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: "${DB_PASSWORD:-secret}"
       OLLAMA_TIMEOUT: 1200
+      MARKET_DATA_URL: http://market-data:8080
     depends_on:
       db:
         condition: service_healthy
@@ -73,9 +75,30 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: "${DB_PASSWORD:-secret}"
       OLLAMA_TIMEOUT: 1200
+      MARKET_DATA_URL: http://market-data:8080
     depends_on:
       db:
         condition: service_healthy
+
+  # Datos de mercado (precios, índices, divisas) y reenvío a ntfy. Solo biblioteca
+  # estándar de Python: no necesita build. En Celaut es el servicio pf-market-data.
+  market-data:
+    image: python:3.12.11-slim-bookworm
+    container_name: personal_finance_market_data
+    command: python3 -u -B /opt/pf-market-data/server.py
+    restart: unless-stopped
+    user: "10001:10001"
+    volumes:
+      - ./dependencies/pf-market-data/service:/opt/pf-market-data:ro
+      - market_data_cache:/data
+    environment:
+      MD_CACHE_PATH: /data/cache.sqlite
+      MD_NTFY_URL: "${MD_NTFY_URL:-}"
+      MD_NTFY_TOKEN: "${MD_NTFY_TOKEN:-}"
+      MD_COINGECKO_KEY: "${MD_COINGECKO_KEY:-}"
+      MD_TWELVEDATA_KEY: "${MD_TWELVEDATA_KEY:-}"
+      MD_FINNHUB_KEY: "${MD_FINNHUB_KEY:-}"
+      MD_ALPHAVANTAGE_KEY: "${MD_ALPHAVANTAGE_KEY:-}"
 
   db:
     image: postgres:18-alpine
@@ -99,3 +122,4 @@ services:
 
 volumes:
   pgdata:
+  market_data_cache:

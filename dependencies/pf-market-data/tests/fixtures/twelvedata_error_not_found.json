@@ -1,0 +1,10 @@
+{
+ "code": 404,
+ "message": "**symbol** not found: ZZZZ. Please specify it correctly according to API Documentation.",
+ "status": "error",
+ "meta": {
+  "symbol": "ZZZZ",
+  "interval": "",
+  "exchange": ""
+ }
+}

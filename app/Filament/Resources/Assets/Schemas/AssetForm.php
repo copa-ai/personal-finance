@@ -33,6 +33,7 @@ class AssetForm
         $components[] = Select::make('type')
             ->label('Tipo')
             ->options(AssetType::class)
+            ->helperText('Fondos, acciones, planes de pensiones y depósitos se gestionan ahora en Inversiones (con movimientos y precios).')
             ->default(AssetType::OTRO->value)
             ->required();
         $components[] = TextInput::make('current_value')

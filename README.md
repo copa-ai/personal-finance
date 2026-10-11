@@ -184,3 +184,25 @@ DB_PORT=5433 php artisan test
 Los tests de `tests/Feature/Payments` cubren el dinero: cuadre de gastos y ajustes, importación de Revolut (estados, reembolsos, comisiones, divisa, duplicados, céntimos), OCR, stock y analíticas por mes en hora local.
 
 Todas las escrituras críticas se ejecutan dentro de transacciones Laravel. Las consultas pesadas utilizan materialized views. El sistema está preparado para Filament Resources y Actions.
+
+INVERSIONES
+
+La fuente de verdad son los movimientos que apuntas; la app no se conecta a bancos, brokers, exchanges ni wallets.
+
+- Plataformas (broker, exchange, banco, wallet, gestora, plan de pensiones) e Instrumentos (acción, ETF, fondo, cripto, bono, depósito…).
+- Movimientos: compra, venta, dividendo, interés, comisión, traspaso entre plataformas, recompensa de staking, split y "ajuste de saldo" (atajo para apuntar lo que tienes sin histórico).
+- Cartera: valor, coste por FIFO, plusvalía, rentabilidad anual (XIRR), reparto por clase de activo y plataforma, desviación frente a la asignación objetivo y evolución diaria.
+- Fiscal: ganancias y pérdidas por venta (FIFO) y rendimientos del año, con aviso de la regla de los dos meses. Orientativo.
+- Recordatorios (comando diario `investments:reminders`): aportaciones periódicas ("Hecho" crea la compra), valoraciones desactualizadas, vencimientos de depósitos, rebalanceo, Renta y Modelo 720/721. Aparecen en el panel y, con `INVESTMENTS_NTFY=true`, también en ntfy.
+- Las transferencias a un establecimiento enlazado a una plataforma de inversión no cuentan como gasto.
+- Las cuentas cripto y los activos de tipo fondo, acciones, plan de pensiones y depósito se migraron a Inversiones con un ajuste de saldo a su valor actual (no se borró nada del modelo antiguo).
+
+MERCADOS
+
+Datos públicos de mercado, independientes de lo que tengas: cripto, índices, ETFs, acciones, divisas, materias primas y bonos.
+
+- Seguimiento: listas editables con cotización y variación del día; ficha de cada símbolo con histórico y gráfico; alertas de precio (cada 15 min).
+- Explorar: widgets de TradingView (gráfico de cualquier símbolo, panorama, mapas de calor, divisas, calendario económico, buscador). Los carga el navegador, no el servidor.
+- Los datos propios vienen de `pf-market-data` (`dependencies/pf-market-data`), el único componente con salida a internet: Kraken, CoinGecko y Binance (cripto), BCE (divisas), Yahoo Finance (índices, ETFs, acciones, materias primas, bonos) y, con clave, Twelve Data, Finnhub y Alpha Vantage como alternativa. Ver su README.
+- Formato de símbolo: `tipo:código`, por ejemplo `crypto:BTC-EUR`, `index:^IBEX`, `etf:IWDA.AS`, `stock:AAPL`, `fx:EURUSD`, `commodity:GC=F`, `bond:^TNX`.
+- Un instrumento con símbolo de mercado se valora solo (`market:refresh`, cada hora; tipos del BCE a diario). Sin `MARKET_DATA_URL`, todo funciona con precios a mano.
