@@ -1,0 +1,35 @@
+{
+ "coins": [
+  {
+   "id": "quant-network",
+   "name": "Quant",
+   "api_symbol": "quant-network",
+   "symbol": "QNT",
+   "market_cap_rank": 98,
+   "thumb": "https://coin-images.coingecko.com/coins/images/3370/thumb/5ZOu7brX_400x400.jpg",
+   "large": "https://coin-images.coingecko.com/coins/images/3370/large/5ZOu7brX_400x400.jpg"
+  },
+  {
+   "id": "quant-bridged",
+   "name": "Quant (Bridged)",
+   "api_symbol": "quant-bridged",
+   "symbol": "QNT",
+   "market_cap_rank": null,
+   "thumb": "",
+   "large": ""
+  },
+  {
+   "id": "qntx",
+   "name": "QNTX",
+   "api_symbol": "qntx",
+   "symbol": "QNTX",
+   "market_cap_rank": 3100,
+   "thumb": "",
+   "large": ""
+  }
+ ],
+ "exchanges": [],
+ "icos": [],
+ "categories": [],
+ "nfts": []
+}

@@ -43,3 +43,17 @@ jobs:
 
       - name: Run tests
         run: php artisan test
+
+  market-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run pf-market-data tests
+        run: python3 -I -m unittest discover -s dependencies/pf-market-data/tests
+

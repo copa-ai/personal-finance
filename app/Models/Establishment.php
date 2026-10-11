@@ -13,7 +13,13 @@ class Establishment extends Model
     protected $fillable = [
         'name',
         'category_id',
+        'investment_platform_id',
     ];
+
+    public function investmentPlatform(): BelongsTo
+    {
+        return $this->belongsTo(InvestmentPlatform::class, 'investment_platform_id');
+    }
 
     public function category(): BelongsTo
     {

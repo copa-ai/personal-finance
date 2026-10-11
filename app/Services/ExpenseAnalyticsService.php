@@ -119,6 +119,8 @@ class ExpenseAnalyticsService
             ->leftJoin('establishments', 'expenses.establishment_id', '=', 'establishments.id')
             ->leftJoin('categories as item_categories', 'expense_items.category_id', '=', 'item_categories.id')
             ->leftJoin('categories as establishment_categories', 'establishments.category_id', '=', 'establishment_categories.id')
+            // Dinero enviado a un broker o exchange: es inversión, no gasto.
+            ->whereNull('establishments.investment_platform_id')
             ->when(
                 filled($filters['month'] ?? null),
                 function (Builder $query) use ($filters) {

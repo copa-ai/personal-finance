@@ -26,6 +26,14 @@ class EstablishmentForm
                 ->createOptionForm(CategoryForm::components())
                 ->searchable()
                 ->nullable(),
+            Select::make('investment_platform_id')
+                ->label('Plataforma de inversión')
+                ->helperText('Si es tu broker o exchange, las transferencias a él no cuentan como gasto.')
+                ->placeholder('No es una plataforma de inversión')
+                ->relationship('investmentPlatform', 'name')
+                ->preload()
+                ->searchable()
+                ->nullable(),
         ];
     }
 

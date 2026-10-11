@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    // pf-market-data: único componente con salida a internet (precios, índices, divisas, ntfy).
+    'market_data' => [
+        'url' => env('MARKET_DATA_URL'),
+        'timeout' => (int) env('MARKET_DATA_TIMEOUT', 20),
+    ],
+
     'ollama' => [
         'url' => env('OLLAMA_URL', 'host.docker.internal:11434'),
         'ocr_model' => env('OLLAMA_OCR_MODEL', 'glm-ocr'),

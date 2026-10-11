@@ -1,0 +1,24 @@
+{
+ "symbol": "IWDA",
+ "name": "iShares Core MSCI World UCITS ETF USD (Acc)",
+ "exchange": "Euronext",
+ "mic_code": "XAMS",
+ "currency": "EUR",
+ "datetime": "2026-10-09",
+ "timestamp": 1791532800,
+ "last_quote_at": 1791565200,
+ "open": "112.48000",
+ "high": "112.96000",
+ "low": "111.20000",
+ "close": "111.47000",
+ "volume": "713522",
+ "previous_close": "112.54000",
+ "change": "-1.07000",
+ "percent_change": "-0.95078",
+ "average_volume": "801133",
+ "is_market_open": false,
+ "fifty_two_week": {
+  "low": "88.21000",
+  "high": "113.62000"
+ }
+}

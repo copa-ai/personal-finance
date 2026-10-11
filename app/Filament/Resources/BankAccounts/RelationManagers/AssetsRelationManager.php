@@ -11,6 +11,7 @@ use Filament\Actions\CreateAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AssetsRelationManager extends RelationManager
 {
@@ -26,6 +27,8 @@ class AssetsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return AssetsTable::configure($table, includeBankAccountColumn: false)
+            // Los activos migrados a Inversiones no se muestran aquí.
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('migrated_at'))
             ->headerActions([
                 CreateAction::make(),
             ])
