@@ -35,6 +35,9 @@ class ProcessOcrJob implements ShouldQueue
     public function __construct(public string $ocrJobId)
     {
         $this->timeout = (int) config('services.ocr.timeout', 1200) + 60;
+
+        // Cola propia: una petición OCR puede durar minutos y no debe bloquear a los demás trabajos (start.sh lleva un worker para ella).
+        $this->onQueue('ocr');
     }
 
     public function handle(OcrService $ocrService): void

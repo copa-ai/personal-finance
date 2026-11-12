@@ -1,6 +1,6 @@
 #!/bin/sh
-# Entrypoint de pf-postgres. Lo lanza pf-app pasando DB_USERNAME, DB_PASSWORD y
-# DB_DATABASE (nodo execute -e ... / Configuration.environment_variables).
+# Entrypoint de pf-postgres. Lo lanza personal-finance (o quien lo instancie) pasando DB_USERNAME, DB_PASSWORD,
+# DB_DATABASE y FINANCE_DB_CLUSTER (la clave publica de la red: ver service.json -> network).
 set -eu
 
 DB_USERNAME="${DB_USERNAME:-laravel}"
@@ -23,7 +23,7 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
     # Local por socket sin contraseña (solo dentro de esta microVM); por red, scram.
     $RUN "$PG_BIN/initdb" -D "$PGDATA" -U "$DB_USERNAME" --encoding=UTF8 \
         --auth-local=trust --auth-host=scram-sha-256 >/dev/null
-    # pf-app llega desde otra IP del nodo; el aislamiento lo da el propio nodo.
+    # personal-finance llega desde otra IP del nodo; el aislamiento lo da el propio nodo.
     {
         echo "host all all 0.0.0.0/0 scram-sha-256"
         echo "host all all ::/0 scram-sha-256"
@@ -31,7 +31,7 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
 fi
 
 # Arranque provisional solo por socket para fijar contraseña y base en cada boot
-# (la contraseña la elige pf-app en cada arranque; los datos pueden ser anteriores).
+# (la contraseña la elige personal-finance en cada arranque; los datos pueden ser anteriores).
 $RUN "$PG_BIN/pg_ctl" -D "$PGDATA" -w -t 120 \
     -o "-c listen_addresses='' -c unix_socket_directories=/tmp" start
 

@@ -10,7 +10,8 @@ class EnsureUser extends Command
 {
     protected $signature = 'app:ensure-user
         {email : Email con el que se inicia sesión}
-        {--name= : Nombre visible (por defecto, la parte local del email)}';
+        {--name= : Nombre visible (por defecto, la parte local del email)}
+        {--if-empty : Solo crea el usuario si no hay ninguno (no resucita el usuario por defecto si el panel ya tiene otro)}';
 
     protected $description = 'Crea el usuario si no existe. La contraseña se lee de PF_ADMIN_PASSWORD o se pregunta. Si ya existe, no lo modifica.';
 
@@ -24,6 +25,12 @@ class EnsureUser extends Command
             $this->error("Email inválido: {$email}");
 
             return self::FAILURE;
+        }
+
+        if ($this->option('if-empty') && User::query()->exists()) {
+            $this->info('Ya hay usuarios; no se crea otro.');
+
+            return self::SUCCESS;
         }
 
         if (User::query()->where('email', $email)->exists()) {

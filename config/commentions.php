@@ -9,7 +9,7 @@ return [
     */
 
     'models' => [
-        'comment' => \Kirschbaum\Commentions\Models\Comment::class,
+        'comment' => \App\Models\Comment::class,
         'subscription' => \Kirschbaum\Commentions\Models\Subscription::class,
     ],
 

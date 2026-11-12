@@ -7,6 +7,7 @@ use App\Models\Establishment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Kirschbaum\Commentions\Contracts\Commentable;
@@ -22,8 +23,6 @@ class Expense extends Model implements Commentable
     public ?string $singleItemConcept = null;
     public ?int $singleItemUnits = null;
 
-    public $timestamps = false;
-
     protected ?string $subexpensesTotalCache = null;
 
     protected $fillable = [
@@ -35,11 +34,13 @@ class Expense extends Model implements Commentable
         'ticket_photo_hash',
         'pending_review',  // Este campo nos sirve para saber si fue creado por OCR. Aunque cuadrase perfectamente, el OcrService lo deja marcado para revisión manual.
         'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
         'date' => 'datetime',
         'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'total' => 'decimal:2',
         'status' => ExpenseStatus::class,
         'pending_review' => 'boolean',
@@ -61,7 +62,7 @@ class Expense extends Model implements Commentable
             return $this->subexpensesTotalCache;
         }
 
-        $this->subexpensesTotalCache = (string) ($this->items()->sum('line_total') ?? '0');
+        $this->subexpensesTotalCache = (string) ($this->items()->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL)) ?? '0');
 
         return $this->subexpensesTotalCache;
     }
@@ -124,7 +125,7 @@ class Expense extends Model implements Commentable
         return $query
             ->whereNotNull("{$expensesTable}.total")
             ->whereRaw(
-                "COALESCE((SELECT SUM(line_total) FROM {$itemsTable} WHERE {$itemsTable}.expense_id = {$expensesTable}.id), 0) <> {$expensesTable}.total",
+                "COALESCE((SELECT SUM(ROUND({$itemsTable}.quantity * {$itemsTable}.unit_price, 2)) FROM {$itemsTable} WHERE {$itemsTable}.expense_id = {$expensesTable}.id), 0) <> {$expensesTable}.total",
             );
     }
 

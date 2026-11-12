@@ -10,7 +10,7 @@ class RestoreOcrService extends Command
 {
     protected $signature = 'ocr:restore';
 
-    protected $description = 'Vuelve a lanzar el servicio OCR activo tras reiniciar la app (el nodo ya no tiene su instancia).';
+    protected $description = 'Comprueba el servicio OCR activo tras reiniciar el servicio y, si su instancia ya no existe en el nodo, vuelve a lanzarlo.';
 
     public function handle(OcrProviderManager $manager): int
     {

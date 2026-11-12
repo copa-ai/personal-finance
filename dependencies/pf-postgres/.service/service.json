@@ -1,14 +1,18 @@
 {
     "tag": ["pf-postgres", "postgresql"],
-    "architecture": "linux/amd64",
+    "architecture": "linux/arm64",
     "resources": {
         "at_init": {
             "mem_limit": 268435456,
-            "disk_space": 2147483648
+            "disk_space": 2147483648,
+            "cpu_period": 100000,
+            "cpu_quota": 50000
         },
         "at_most": {
             "mem_limit": 1073741824,
-            "disk_space": 10737418240
+            "disk_space": 10737418240,
+            "cpu_period": 100000,
+            "cpu_quota": 100000
         }
     },
     "init": {
@@ -21,5 +25,26 @@
             "protocol": ["postgresql"]
         }
     ],
-    "envs": ["DB_USERNAME", "DB_PASSWORD", "DB_DATABASE"]
+    "envs": ["DB_USERNAME", "DB_PASSWORD", "DB_DATABASE", "FINANCE_DB_CLUSTER"],
+    "network": [
+        {
+            "tags": ["postgres"],
+            "prose": "PostgreSQL database with the core schema of personal-finance (Laravel migrations) (the formal lists the core tables and their stable columns, primary and unique keys and foreign keys between them). Every personal-finance instance that uses the same cluster key and the same schema shares this database.",
+            "formal": {
+                "db.cluster": "${FINANCE_DB_CLUSTER}",
+                "db.engine": "postgresql",
+                "db.schema": "personal-finance",
+                "db.table.ajustes": "id:uuid; clave:character varying(255); valor:jsonb null | pk(id) | uq(clave)",
+                "db.table.auditorias": "id:uuid; evento:character varying(255); auditable_type:character varying(255) null; auditable_id:character varying(64) null; created_at:timestamp(0) without time zone null | pk(id)",
+                "db.table.categories": "id:uuid; name:character varying(100); parent_id:uuid null | pk(id) | uq(name) | fk(parent_id->categories.id del=set null upd=no action)",
+                "db.table.establishments": "id:uuid; name:character varying(255); category_id:uuid null | pk(id) | uq(name) | fk(category_id->categories.id del=set null upd=no action)",
+                "db.table.expense_items": "id:uuid; expense_id:uuid; category_id:uuid null; concept:character varying(255) null; quantity:numeric(10,3) default='1'::numeric; unit_price:numeric(10,2) | pk(id) | fk(category_id->categories.id del=set null upd=no action) | fk(expense_id->expenses.id del=cascade upd=no action)",
+                "db.table.expenses": "id:uuid; establishment_id:uuid null; date:timestamp(0) with time zone; total:numeric(10,2) null; status:character varying(16) default='PAID'::character varying | pk(id) | fk(establishment_id->establishments.id del=set null upd=no action)",
+                "db.table.users": "id:uuid; name:character varying(255); email:character varying(255) | pk(id) | uq(email)"
+            },
+            "protocol_stack": [
+                {"tags": ["postgresql"]}
+            ]
+        }
+    ]
 }

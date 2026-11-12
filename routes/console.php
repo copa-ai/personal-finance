@@ -1,6 +1,5 @@
 <?php
 
-use App\Console\Commands\BackupDatabase;
 use App\Console\Commands\SyncMarketData;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -10,12 +9,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command(BackupDatabase::class)
-    ->dailyAt('03:15')
-    ->timezone('Europe/Madrid')
-    ->withoutOverlapping()
-    ->runInBackground();
-
+// La copia diaria de la base ya no se programa aqui (backup:database necesita pg_dump, que la imagen del servicio no lleva):
+// la hace `finance:vigilar-base` (App\Services\CopiaBase) desde start.sh.
 Schedule::command(SyncMarketData::class)
     ->dailyAt('06:30')
     ->timezone('Europe/Madrid')

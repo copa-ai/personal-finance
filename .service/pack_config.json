@@ -17,23 +17,29 @@
         "artisan",
         "composer.json",
         "composer.lock",
+        "agente",
+        "docker/agente",
+        "docker/chat",
+        "docker/servicio",
         ".service/pack_config.json"
     ],
     "ignore": [
         "vendor/",
         "node_modules/",
         "tests/",
-        "storage/",
-        "*.md",
+        "__pycache__/",
+        "*.pyc",
+        "*.sqlite*",
+        "*.enc",
         ".env",
         ".env.*",
+        "storage/",
+        "bootstrap/cache/*.php",
+        "agente/base/",
+        "agente/workspace/",
+        "agente/encargos/",
+        ".cc-writes/",
         ".git/",
-        ".github/",
-        "docker/",
-        "docker-compose.yml",
-        ".editorconfig",
-        ".pytest_cache/",
-        "__pycache__/",
-        "bootstrap/cache/*.php"
+        ".github/"
     ]
 }

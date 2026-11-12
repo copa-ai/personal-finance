@@ -4,20 +4,26 @@ namespace App\Services;
 
 use App\Enums\OcrProviderStatus;
 use App\Models\OcrProvider;
+use App\Services\Celaut\Nodo;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * Gestiona el servicio OCR activo: recibe un paquete .celaut.bee, pide al controlador
- * local de pf-entrypoint que lo lance en el nodo y guarda dónde escucha.
+ * Gestiona el servicio OCR activo: recibe un paquete .celaut.bee, lo lanza en el nodo Celaut con `celaut acquire --package`
+ * (App\Services\Celaut\Nodo, el mismo canal con el que se lanza la base de datos) y guarda dónde escucha.
+ *
+ * La instancia la guarda `celaut` en el pool de este servicio (fichero de estado); aquí solo se recuerda su dirección «ip:puerto»
+ * y se localiza por ella en `Nodo::instancias()` para pararla o comprobar que sigue viva.
  */
 class OcrProviderManager
 {
     private const DIRECTORY = 'ocr-providers';
+
+    private ?Nodo $nodo = null;
 
     public function isAvailable(): bool
     {
@@ -75,19 +81,37 @@ class OcrProviderManager
     }
 
     /**
-     * Lanza el servicio del paquete y lo deja como el único activo.
+     * Lanza el servicio del paquete y lo deja como el único activo (para antes el anterior, si lo hay).
      */
     public function start(OcrProvider $provider): OcrProvider
     {
+        $lease = null;
+
         try {
-            $started = $this->control('ocr/start', [
-                'path' => Storage::disk('local')->path($provider->bee_path),
-            ], (int) config('services.ocr.start_timeout'));
+            // Solo cabe una instancia: se para la anterior (si es otro proveedor, queda parado y su paquete se conserva hasta que
+            // el nuevo arranque bien).
+            $previous = OcrProvider::active();
+            $this->stopInstance($previous);
+
+            if ($previous !== null && $previous->isNot($provider)) {
+                $previous->forceFill(['status' => OcrProviderStatus::STOPPED, 'uri' => null])->save();
+            }
+
+            $started = $this->acquirePackage(Storage::disk('local')->path($provider->bee_path));
+            $lease = (int) $started['lease'];
+
+            if (! $this->waitOpen($started['uri'], (int) config('services.ocr.start_timeout'))) {
+                throw new RuntimeException('El servicio OCR no responde en '.$started['uri'].'.');
+            }
         } catch (Throwable $e) {
             Log::error('[OcrProviderManager] No se pudo lanzar el servicio OCR', [
                 'provider_id' => $provider->id,
                 'error' => $e->getMessage(),
             ]);
+
+            if ($lease !== null) {
+                $this->stopLease($lease);
+            }
 
             $provider->forceFill([
                 'status' => OcrProviderStatus::FAILED,
@@ -98,13 +122,12 @@ class OcrProviderManager
         }
 
         $provider->forceFill([
-            'service_hash' => $started['service_hash'] ?? null,
+            'service_hash' => $this->serviceOf($lease),
             'uri' => $started['uri'],
             'status' => OcrProviderStatus::ACTIVE,
             'error_message' => null,
         ])->save();
 
-        // El controlador para el servicio anterior al lanzar este.
         $this->pruneBeeFiles($provider);
 
         return $provider;
@@ -118,56 +141,134 @@ class OcrProviderManager
             return;
         }
 
-        $this->control('ocr/stop', [], 60);
+        $this->stopInstance($active);
 
         $active->forceFill(['status' => OcrProviderStatus::STOPPED, 'uri' => null])->save();
     }
 
     /**
-     * Tras reiniciar pf-app el nodo ya no tiene la instancia: vuelve a lanzar la activa.
+     * Tras reiniciar el servicio: si el pool de `celaut` conserva la instancia del OCR activo y responde, se deja; si no, se vuelve
+     * a lanzar el paquete.
      */
     public function restore(): ?OcrProvider
     {
         $active = OcrProvider::active();
 
-        return $active === null ? null : $this->start($active);
+        if ($active === null) {
+            return null;
+        }
+
+        if ($active->uri !== null && $this->leaseOf($active->uri) !== null && $this->waitOpen($active->uri, 5)) {
+            return $active;
+        }
+
+        return $this->start($active);
+    }
+
+    private function nodo(): Nodo
+    {
+        return $this->nodo ??= Nodo::desdeConfig();
     }
 
     /**
-     * @param array<string, mixed> $payload
-     * @return array<string, mixed>
+     * `celaut acquire --package FILE`: el paquete que subió el usuario no está entre las dependencias empaquetadas (`.dependencies`),
+     * así que `Nodo::adquirir()` (por nombre) no sirve. Mismo binario y mismo fichero de estado que `Nodo`.
+     *
+     * @return array{lease: int, uri: string, new: bool}
      */
-    private function control(string $endpoint, array $payload, int $timeout): array
+    private function acquirePackage(string $path): array
     {
-        $base = trim((string) config('services.ocr.control_url'));
+        $estado = config('finance.celaut.estado');
+        $args = [config('finance.celaut.binario', 'celaut'), ...($estado ? ['--state', $estado] : []), 'acquire', '--package', $path];
 
-        if ($base === '') {
-            throw new RuntimeException(
-                'No hay controlador de nodo Celaut (PF_CONTROL_URL): fuera de un nodo no se pueden lanzar paquetes .celaut.bee. '
-                .'Define OCR_SERVICE_URL para usar un servicio OCR ya levantado.'
-            );
+        // Un lanzamiento puede tardar minutos: el nodo envía el paquete, lo construye y arranca el servicio antes de contestar.
+        $process = new Process($args, null, null, null, max(60, (int) config('services.ocr.start_timeout')));
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            $error = json_decode($process->getErrorOutput(), true);
+            $reason = is_array($error) ? ($error['error'] ?? 'error desconocido') : trim($process->getErrorOutput());
+
+            throw new RuntimeException('celaut acquire: '.$reason);
         }
 
-        $response = Http::timeout($timeout)
-            ->acceptJson()
-            ->post(rtrim($base, '/').'/'.$endpoint, $payload);
+        $data = json_decode($process->getOutput(), true);
 
-        if (! $response->successful()) {
-            throw new RuntimeException(sprintf(
-                'El controlador rechazó %s (HTTP %d): %s',
-                $endpoint,
-                $response->status(),
-                mb_substr(trim($response->body()), 0, 500)
-            ));
-        }
-
-        $data = $response->json();
-
-        if (! is_array($data) || ($endpoint === 'ocr/start' && empty($data['uri']))) {
-            throw new RuntimeException('El controlador devolvió una respuesta sin "uri".');
+        if (! is_array($data) || empty($data['uri']) || ! isset($data['lease'])) {
+            throw new RuntimeException('celaut acquire no devolvió "lease" y "uri": '.mb_substr(trim($process->getOutput()), 0, 300));
         }
 
         return $data;
+    }
+
+    private function stopInstance(?OcrProvider $provider): void
+    {
+        $lease = $provider?->uri !== null ? $this->leaseOf($provider->uri) : null;
+
+        if ($lease !== null) {
+            $this->stopLease($lease);
+        }
+    }
+
+    private function stopLease(int $lease): void
+    {
+        try {
+            $this->nodo()->parar($lease);
+        } catch (Throwable $e) {
+            Log::warning('[OcrProviderManager] No se pudo parar la instancia OCR', ['lease' => $lease, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function leaseOf(string $uri): ?int
+    {
+        try {
+            foreach ($this->nodo()->instancias() as $instance) {
+                if (($instance['uri'] ?? null) === $uri) {
+                    return (int) $instance['lease'];
+                }
+            }
+        } catch (Throwable) {
+            // Sin nodo (desarrollo) o sin pool: no hay instancia que localizar.
+        }
+
+        return null;
+    }
+
+    private function serviceOf(int $lease): ?string
+    {
+        try {
+            foreach ($this->nodo()->instancias() as $instance) {
+                if ((int) ($instance['lease'] ?? -1) === $lease) {
+                    return $instance['service'] ?? null;
+                }
+            }
+        } catch (Throwable) {
+        }
+
+        return null;
+    }
+
+    /**
+     * Espera a que «ip:puerto» acepte conexiones TCP.
+     */
+    private function waitOpen(string $uri, int $timeout): bool
+    {
+        [$host, $port] = [substr($uri, 0, (int) strrpos($uri, ':')), (int) substr($uri, (int) strrpos($uri, ':') + 1)];
+        $deadline = time() + max(1, $timeout);
+
+        do {
+            $socket = @fsockopen($host, $port, $errno, $error, 2);
+
+            if ($socket !== false) {
+                fclose($socket);
+
+                return true;
+            }
+
+            sleep(2);
+        } while (time() < $deadline);
+
+        return false;
     }
 
     private function nameFromFilename(string $filename): string

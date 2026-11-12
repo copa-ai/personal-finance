@@ -17,6 +17,7 @@ class EstablishmentForm
             TextInput::make('name')
                 ->label('Name')
                 ->required()
+                ->unique(ignoreRecord: true)
                 ->maxLength(150),
             Select::make('category_id')
                 ->label('Category')

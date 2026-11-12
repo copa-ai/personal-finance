@@ -19,6 +19,7 @@ class CategoryForm
                     TextInput::make('name')
                         ->label('Nombre')
                         ->required()
+                        ->unique(ignoreRecord: true)
                         ->maxLength(100),
                     Select::make('parent_id')
                         ->label('Categoría Padre')

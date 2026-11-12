@@ -45,6 +45,7 @@ class AdminPanelProvider extends PanelProvider
                 'Finanzas',
                 'Inventario',
                 'IA',
+                'Ajustes',
             ])
             ->plugin(\Hammadzafar05\MobileBottomNav\MobileBottomNav::make()->fromNavigation(3))
             ->plugin(\Caresome\FilamentAuthDesigner\AuthDesignerPlugin::make())

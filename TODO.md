@@ -1,1 +1,27 @@
 
+## Arranque y recursos
+
+- [ ] **Nada de esto se ha construido ni ejecutado.** `.service/Dockerfile`, `docker/servicio/start.sh` y `.service/service.json` solo se comprobaron en sintaxis (`bash -n`, JSON). Primer paso: `nodo pack .` y arrancar en un nodo arm64.
+- [ ] **OCR en arm64.** El servicio ahora es `linux/arm64` (antes amd64). El `.celaut.bee` del OCR que se suba tiene que ser arm64 o correr emulado; `services/glm-ocr/` (Ollama + `glm-ocr`) no se ha probado ahí. Lo mismo vale para `dependencies/pf-postgres` (declarado `linux/amd64`).
+- [ ] **`celaut acquire --package`.** `OcrProviderManager` lanza el `.bee` subido con `celaut acquire --package FILE` (descrito en la documentación de service-library); el Dockerfile fija `celaut` v0.2.0 y no se ha comprobado que esa versión ya lo traiga ni que el `lease` y la `uri` salgan como en `acquire --name`.
+- [ ] **Recursos por medir.** Memoria (1,5 GiB), CPU (1) y disco (5 GiB) de `service.json` son un punto de partida, con `at_init` igual a `at_most`. El servicio publica `/memoria.json` (cada 15 s): con el túnel, `curl <túnel>/memoria.json` tras un OCR y un turno de chat da el pico real; con él se recorta o amplía `mem_limit` (y, si `celaut resize --mem` lo permite, se pide más memoria al nodo solo cuando haga falta). El OCR de un ticket mientras el agente responde es el peor caso a comprobar. `nodo estimate personal-finance` da el veredicto de coste.
+- [ ] **Contraseña por defecto.** Sin `PF_ADMIN_EMAIL`/`PF_ADMIN_PASSWORD` se crea `admin@demo.com` / `cambia-esta-clave`; el panel solo se alcanza por `nodo tunnel`, pero hay que cambiarla en el primer acceso.
+- [x] **`pg_dump` fuera de la imagen.** La imagen ya no lleva `postgresql-client-18` (como nutrition): se retiró la programación de `backup:database` de `routes/console.php`; la copia diaria la hace `finance:vigilar-base` (`CopiaBase`). El comando `BackupDatabase` sigue existiendo solo para el docker-compose antiguo.
+- [ ] **Límite de subida.** Caddy admite cuerpos de 1100 MB y PHP 1024 MB (el `.celaut.bee` del OCR puede pesar cientos de MB); la subida pasa por el túnel y el disco de 5 GiB.
+
+## Chat
+
+- [ ] **Nada del chat se ha ejecutado.** El chat (traductor gRPC, API interna, bot, modo Claude, acciones y confirmaciones) se portó de personal-nutrition y solo se comprobó en sintaxis (`php -l`, `py_compile`, `bash -n`). Sin tests propios; hay que probarlo con `chatui` y con un token de Claude real (prompt, skill `chat-finanzas`, formato de `workspace/chat-acciones-N.json`).
+- [ ] **Skill y reglas del agente sin validar contra un modelo real.** Los límites (10 acciones por turno, 50 líneas por gasto, 400 días atrás) y los campos de cada acción son una primera versión; ajustar `config/chat_claude.php` tras usarlo.
+- [ ] **El panel aún no usa `GestionCatalogo`/`GestionGastos`/`GestionLineas`.** Solo `ViewExpense` usa ya `LanzaOcr`; los recursos de categorías, establecimientos y gastos siguen con sus acciones de Filament. Mover ahí sus reglas (borrar categoría con subcategorías, nombres duplicados) cuando se toquen.
+- [ ] **`ExpenseObserver::created`** conserva su propio encolado de OCR (con notificación de pantalla); el chat crea el gasto sin foto y la añade después para esquivarlo. Unificarlo con `LanzaOcr`.
+
+## Cards (revisar gastos) y cierre
+
+- [ ] **Nada se ha ejecutado**: ni las migraciones (PostgreSQL y SQLite del chat), ni el chat, ni el slot cards (gRPC con `chatui`, `cards_pb2` generado por `generar.sh`), ni el OCR relanzado desde la cola `ocr`, ni el arranque en arm64. Todo el trabajo de esta rama (UUID, auditoría y fusión, agente, cards, arranque) solo se comprobó en sintaxis (`php -l`, `py_compile`, `bash -n`, JSON).
+- [ ] **Cards sin probar con un cliente real.** Comprobar el mazo con fotos reales (PNG/JPEG de tickets, límite de 4 MiB en `cards.max_imagen_bytes`), el tamaño de un `DeckEvent` con muchos gastos (`cards.max_bytes_mazo`), el orden de las tarjetas «luego», el deshacer y la reanudación a los 300 s.
+- [ ] **«Corregir con el agente» solo deja la tarjeta para luego.** No abre el chat ni pasa el gasto a Claude; el `done_text` pide hacerlo después. Si se quiere, que el bot ofrezca «corregir el gasto X» con el id.
+- [ ] **El gasto revisado no vuelve a pendiente si cambió a mano.** Deshacer solo restaura `pending_review` si el gasto sigue existiendo y ya no estaba pendiente.
+- [ ] **Móvil.** Revisión ligera: en las líneas de gasto, *Movimiento* y *Precio unitario* son columnas conmutables (Movimiento oculta por defecto). Sin probar en pantalla; `fromNavigation(3)` de la barra inferior toma los tres primeros elementos del menú: comprobar que las páginas nuevas (grupo IA) no la cambian.
+- [ ] **Tests de finance sin revisar** (no se han tocado): `tests/Concerns/CreatesExpenses.php`, `Payments/SingleItemExpenseTest`, `ExpenseItemMovementTypeTest`, `BalanceExpensesServiceTest`, `OcrImportTest`, `OcrProviderTest` (usa el controlador OCR y `services.ocr.control_url`, que ya no existen), `PanelPagesTest` y todo test con ids enteros, enums nativos de PostgreSQL o `line_total` como columna. `tests.yml` tampoco se ha tocado.
+- [ ] **`docker-compose.yml`** apunta a `docker/php/Dockerfile` (borrado) y `backup:database` necesita `pg_dump` (fuera de la imagen): decidir si se retiran en favor de `finance:vigilar-base`.

@@ -1,0 +1,9 @@
+{
+    "users": ["id", "name", "email"],
+    "categories": ["id", "name", "parent_id"],
+    "establishments": ["id", "name", "category_id"],
+    "expenses": ["id", "establishment_id", "date", "total", "status"],
+    "expense_items": ["id", "expense_id", "category_id", "concept", "quantity", "unit_price"],
+    "ajustes": ["id", "clave", "valor"],
+    "auditorias": ["id", "evento", "auditable_type", "auditable_id", "created_at"]
+}

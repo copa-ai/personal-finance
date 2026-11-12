@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\Expenses\Tables;
 
+use App\Models\ExpenseItem;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
@@ -28,6 +31,7 @@ class ExpenseItemsTable
                     ->label('Concepto')
                     ->searchable(),
                 TextColumn::make('movement_type')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Movimiento')
                     ->badge(),
                 TextColumn::make('quantity')
@@ -35,14 +39,15 @@ class ExpenseItemsTable
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('unit_price')
+                    ->toggleable()
                     ->label('Precio Unitario')
                     ->local_money()
                     ->sortable(),
                 TextColumn::make('line_total')
                     ->label('Total de Línea')
-                    ->summarize(Sum::make())
+                    ->summarize(Sum::make()->using(fn ($query) => $query->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL))))
                     ->local_money()
-                    ->sortable(),
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByRaw(ExpenseItem::LINE_TOTAL_SQL.' '.$direction)),
                 IconColumn::make('is_consumable')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->label('¿Consumible?')

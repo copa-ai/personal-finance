@@ -11,6 +11,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseAnalysisItemsTable extends TableWidget
 {
@@ -56,8 +58,8 @@ class ExpenseAnalysisItemsTable extends TableWidget
                 TextColumn::make('line_total')
                     ->label('Total línea')
                     ->local_money()
-                    ->summarize(Sum::make())
-                    ->sortable()
+                    ->summarize(Sum::make()->using(fn ($query) => $query->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL))))
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByRaw(ExpenseItem::LINE_TOTAL_SQL.' '.$direction))
             ])
             ->recordActions([
                 Action::make('openExpense')

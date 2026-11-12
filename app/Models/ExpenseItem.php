@@ -17,7 +17,8 @@ class ExpenseItem extends Model implements Commentable
     use HasComments;
     use HasUuids;
 
-    public $timestamps = false;
+    /** SQL del importe de una linea (cantidad x precio unitario, a 2 decimales): ya no hay columna generada. */
+    public const LINE_TOTAL_SQL = 'ROUND(expense_items.quantity * expense_items.unit_price, 2)';
 
     protected $fillable = [
         'expense_id',
@@ -25,7 +26,7 @@ class ExpenseItem extends Model implements Commentable
         'concept',
         'quantity',
         'unit_price',
-        // 'line_total' omitted from fillable because it's a generated STORED column
+        // 'line_total' no es columna: lo calcula getLineTotalAttribute()
         'tags',
         'item_type',
         'is_consumable',
@@ -39,7 +40,6 @@ class ExpenseItem extends Model implements Commentable
     protected $casts = [
         'quantity' => 'decimal:3',
         'unit_price' => 'decimal:2',
-        'line_total' => 'decimal:2',
         'tags' => 'array',
         'is_consumable' => 'boolean',
         'end_date' => 'date',
@@ -49,6 +49,14 @@ class ExpenseItem extends Model implements Commentable
         'recurrence' => Recurrence::class,
         'movement_type' => MovementType::class,
     ];
+
+    /** Importe de la linea, con 2 decimales (cantidad x precio unitario). */
+    public function getLineTotalAttribute(): string
+    {
+        $total = round((float) ($this->attributes['quantity'] ?? 0) * (float) ($this->attributes['unit_price'] ?? 0), 2);
+
+        return number_format($total, 2, '.', '');
+    }
 
     public function expense(): BelongsTo
     {

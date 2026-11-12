@@ -6,6 +6,7 @@ use App\Models\ExpenseItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ExpenseAnalyticsService
 {
@@ -33,7 +34,7 @@ class ExpenseAnalyticsService
             ->selectRaw("COALESCE(item_categories.name, establishment_categories.name, 'Sin categoría') as effective_category_name")
             ->selectRaw('COALESCE(expense_items.category_id, establishments.category_id) as effective_category_id')
             ->orderByDesc('expenses.date')
-            ->orderByDesc('expense_items.line_total');
+            ->orderByRaw(ExpenseItem::LINE_TOTAL_SQL.' DESC');
     }
 
     public function groupedByEffectiveCategory(array $filters, int $limit = 8): Collection
@@ -41,7 +42,7 @@ class ExpenseAnalyticsService
         return $this->collapseTopResults(
             $this->baseAggregationQuery($filters)
                 ->selectRaw("COALESCE(item_categories.name, establishment_categories.name, 'Sin categoría') as label")
-                ->selectRaw('SUM(expense_items.line_total) as total')
+                ->selectRaw('SUM('.ExpenseItem::LINE_TOTAL_SQL.') as total')
                 ->groupByRaw("COALESCE(item_categories.name, establishment_categories.name, 'Sin categoría')")
                 ->orderByDesc('total')
                 ->get()
@@ -58,7 +59,7 @@ class ExpenseAnalyticsService
         return $this->collapseTopResults(
             $this->baseAggregationQuery($filters)
                 ->selectRaw("COALESCE(establishments.name, 'Sin establecimiento') as label")
-                ->selectRaw('SUM(expense_items.line_total) as total')
+                ->selectRaw('SUM('.ExpenseItem::LINE_TOTAL_SQL.') as total')
                 ->groupByRaw("COALESCE(establishments.name, 'Sin establecimiento')")
                 ->orderByDesc('total')
                 ->get()
@@ -72,7 +73,7 @@ class ExpenseAnalyticsService
 
     public function totalForFilters(array $filters): float
     {
-        return (float) $this->baseAggregationQuery($filters)->sum('expense_items.line_total');
+        return (float) $this->baseAggregationQuery($filters)->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL));
     }
 
     /**
@@ -84,7 +85,7 @@ class ExpenseAnalyticsService
         $filtersWithoutCategory = $filters;
         unset($filtersWithoutCategory['categoryId']);
 
-        return (float) $this->baseAggregationQuery($filtersWithoutCategory)->sum('expense_items.line_total');
+        return (float) $this->baseAggregationQuery($filtersWithoutCategory)->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL));
     }
 
     public function selectedCategoryLabel(array $filters): ?string

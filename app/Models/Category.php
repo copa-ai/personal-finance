@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\Concerns\UuidDeClaveNatural;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,8 +12,14 @@ use Illuminate\Support\Collection;
 
 class Category extends Model
 {
-    use HasUuids;
+    use UuidDeClaveNatural;
     use SoftDeletes;
+
+    /** El id es un UUIDv5 del nombre: dos bases que crean la misma categoria por separado coinciden al fusionarse. */
+    public static function claveNatural(): string
+    {
+        return 'name';
+    }
 
     protected $fillable = [
         'name',
