@@ -24,7 +24,6 @@
         ".service/pack_config.json"
     ],
     "ignore": [
-        "vendor/",
         "node_modules/",
         "tests/",
         "__pycache__/",
