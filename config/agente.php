@@ -15,6 +15,9 @@ return [
 
     'claude' => env('AGENTE_CLAUDE', 'claude'),
 
+    // Segundos que se le da a Claude para leer un ticket (OCR a traves de Claude, App\Services\OcrClaude).
+    'ocr_timeout' => (int) env('AGENTE_OCR_TIMEOUT', 300),
+
     // Modelo que se pasa a `claude -p --model` en todas las ejecuciones.
     'modelo' => env('AGENTE_MODELO', 'claude-sonnet-5-5'),
 

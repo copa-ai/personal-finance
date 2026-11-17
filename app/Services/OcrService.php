@@ -22,6 +22,7 @@ class OcrService
     public function __construct(
         private BalanceExpensesService $balance_expenses_service,
         private OcrProviderManager $providers,
+        private OcrClaude $claude,
     ) {
     }
 
@@ -35,7 +36,7 @@ class OcrService
      */
     public function getOcrServiceLabel(): ?string
     {
-        return $this->providers->activeLabel();
+        return $this->claude->disponible() ? $this->claude->etiqueta() : $this->providers->activeLabel();
     }
 
     public function importExpenseItemsFromTicketOcr(Expense $expense): int
@@ -154,7 +155,7 @@ class OcrService
         Log::info(self::LOG_PREFIX . ' Iniciando extracción OCR', [
             'expense_id' => $expenseId,
             'expense_total' => $expense->total,
-            'service' => $this->providers->activeLabel(),
+            'service' => $this->getOcrServiceLabel(),
         ]);
 
         try {
@@ -168,34 +169,7 @@ class OcrService
                 throw new RuntimeException("No se encontró el ticket: {$ticketHash}.");
             }
 
-            $baseUrl = $this->providers->baseUrl();
-
-            if ($baseUrl === null) {
-                throw new RuntimeException('No hay ningún servicio OCR activo. Sube un archivo .celaut.bee en "Servicio OCR".');
-            }
-
-            $response = Http::timeout((int) config('services.ocr.timeout'))
-                ->acceptJson()
-                ->withBody(Storage::disk('local')->get($ticketHash), $this->ticketMimeType($ticketHash))
-                ->post($baseUrl . '/ocr');
-
-            if (! $response->successful()) {
-                throw new RuntimeException(sprintf(
-                    'El servicio OCR falló (HTTP %d): %s',
-                    $response->status(),
-                    $this->trimForError($response->body())
-                ));
-            }
-
-            $decoded = $response->json();
-
-            if (! is_array($decoded)) {
-                Log::error(self::LOG_PREFIX . ' La respuesta del servicio OCR no es JSON válido', [
-                    'expense_id' => $expenseId,
-                    'content_preview' => $this->trimForError($response->body()),
-                ]);
-                throw new RuntimeException('La respuesta del servicio OCR no es un JSON válido.');
-            }
+            $decoded = $this->requestOcr($expenseId, $ticketHash);
 
             $this->syncExpenseMetadataFromTicket($expense, $decoded);
             $items = $this->parseResponsePayload($decoded, $expenseId);
@@ -218,6 +192,71 @@ class OcrService
 
             throw $e;
         }
+    }
+
+    /**
+     * Con Claude activo (ajuste «Chat con Claude» y token) el ticket lo lee Claude; si falla y hay un servicio OCR activo, se usa este.
+     * Sin Claude, el servicio OCR. Los dos devuelven el mismo JSON (docs/ocr-service.md).
+     *
+     * @return array<string, mixed>
+     */
+    private function requestOcr(string $expenseId, string $ticketHash): array
+    {
+        if (! $this->claude->disponible()) {
+            return $this->requestFromService($expenseId, $ticketHash);
+        }
+
+        try {
+            return $this->claude->extraer($ticketHash, $expenseId);
+        } catch (Exception $e) {
+            if (! $this->providers->isAvailable()) {
+                throw $e;
+            }
+
+            Log::warning(self::LOG_PREFIX . ' Claude no pudo leer el ticket; se usa el servicio OCR', [
+                'expense_id' => $expenseId,
+                'error_message' => $e->getMessage(),
+            ]);
+
+            return $this->requestFromService($expenseId, $ticketHash);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requestFromService(string $expenseId, string $ticketHash): array
+    {
+        $baseUrl = $this->providers->baseUrl();
+
+        if ($baseUrl === null) {
+            throw new RuntimeException('No hay ningún servicio OCR activo ni Claude disponible. Sube un archivo .celaut.bee en "Servicio OCR" o activa Claude (ajuste «Chat con Claude» y su clave).');
+        }
+
+        $response = Http::timeout((int) config('services.ocr.timeout'))
+            ->acceptJson()
+            ->withBody(Storage::disk('local')->get($ticketHash), $this->ticketMimeType($ticketHash))
+            ->post($baseUrl . '/ocr');
+
+        if (! $response->successful()) {
+            throw new RuntimeException(sprintf(
+                'El servicio OCR falló (HTTP %d): %s',
+                $response->status(),
+                $this->trimForError($response->body())
+            ));
+        }
+
+        $decoded = $response->json();
+
+        if (! is_array($decoded)) {
+            Log::error(self::LOG_PREFIX . ' La respuesta del servicio OCR no es JSON válido', [
+                'expense_id' => $expenseId,
+                'content_preview' => $this->trimForError($response->body()),
+            ]);
+            throw new RuntimeException('La respuesta del servicio OCR no es un JSON válido.');
+        }
+
+        return $decoded;
     }
 
     private function ticketMimeType(string $ticketHash): string

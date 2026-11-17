@@ -1,6 +1,13 @@
 @php($provider = $this->getProvider())
+@php($claude = app(\App\Services\OcrClaude::class)->disponible())
 
 <x-filament-panels::page>
+    @if ($claude)
+        <x-filament::section heading="OCR con Claude">
+            <p>«Chat con Claude» está activo y hay clave de Claude: <strong>el OCR de tickets lo hace Claude</strong>. El servicio de abajo, si lo hay, solo se usa de respaldo cuando Claude falla (límite de uso del plan, agente ocupado…).</p>
+        </x-filament::section>
+    @endif
+
     <x-filament::section heading="Servicio activo">
         @if ($provider)
             <p><strong>{{ $provider->label() }}</strong> — {{ $provider->status->getLabel() }}</p>
@@ -19,7 +26,7 @@
                 </form>
             @endif
         @else
-            <p>No hay ningún servicio OCR. Sin él, el OCR de tickets no funciona.</p>
+            <p>No hay ningún servicio OCR.{{ $claude ? '' : ' Sin él (y sin Claude activo), el OCR de tickets no funciona.' }}</p>
         @endif
     </x-filament::section>
 

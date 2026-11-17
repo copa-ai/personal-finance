@@ -9,6 +9,7 @@ use App\Models\Expense;
 use App\Models\ExpenseItem;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 trait CreatesExpenses
 {
@@ -37,6 +38,6 @@ trait CreatesExpenses
 
     protected function itemsTotal(Expense $expense): string
     {
-        return number_format((float) $expense->items()->sum('line_total'), 2, '.', '');
+        return number_format((float) $expense->items()->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL)), 2, '.', '');
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\OcrJobStatus;
 use App\Jobs\ProcessOcrJob;
 use App\Models\Expense;
 use App\Models\OcrJob;
+use App\Services\OcrClaude;
 use App\Services\OcrProviderManager;
 use Throwable;
 
@@ -17,11 +18,11 @@ use Throwable;
  */
 class LanzaOcr
 {
-    /** Hay un servicio OCR activo al que mandar tickets. */
+    /** Se puede hacer OCR: Claude activo (ajuste y clave) o un servicio OCR activo al que mandar tickets. */
     public function disponible(): bool
     {
         try {
-            return app(OcrProviderManager::class)->isAvailable();
+            return app(OcrClaude::class)->disponible() || app(OcrProviderManager::class)->isAvailable();
         } catch (Throwable) {
             return false;
         }

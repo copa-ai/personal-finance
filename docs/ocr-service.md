@@ -3,6 +3,10 @@
 pf-app no lleva OCR dentro. El OCR es un servicio Celaut aparte que se pasa a la app como
 paquete `.celaut.bee`. Así la instancia pesa menos y se puede cambiar de OCR sin reconstruir.
 
+> **Claude.** Si el ajuste «Chat con Claude» está activo y hay clave de Claude, el OCR lo hace Claude (`App\Services\OcrClaude`) y este
+> servicio solo se usa de respaldo si Claude falla. Claude devuelve el mismo JSON que el contrato de abajo (`establishment`, `category`, `items`),
+> así que todo lo que sigue a la lectura (líneas, cuadre con ajuste, gasto pendiente de revisar) es idéntico.
+
 ## Subir un servicio
 
 Panel > **Servicio OCR**, o por HTTP (sesión de Filament y token CSRF, o `Accept: application/json`):

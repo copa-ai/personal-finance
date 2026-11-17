@@ -260,10 +260,16 @@ El mismo traductor levanta un segundo slot, «cards» (`http2` + `grpc` + `cards
 
 ## OCR de tickets
 
-El OCR no va dentro de la app: se sube un servicio como paquete `.celaut.bee` desde el panel
-(**Servicio OCR**) o con `POST /ocr-service`. Sin servicio activo, el OCR de tickets falla con un
-mensaje claro y el resto de la app funciona. Contrato, variables y funcionamiento en
-[docs/ocr-service.md](docs/ocr-service.md).
+El OCR puede hacerlo **Claude** o un **servicio externo**:
+
+- **Con Claude** (ajuste «Chat con Claude» activo y clave en Ajustes → IA → Conexión con Claude): `App\Services\OcrClaude` deja la foto en
+  `agente/encargos/ocr-N/`, lanza un turno de `claude -p` con la skill `ocr-ticket` (solo la herramienta `Read`) y recibe el mismo JSON que
+  devuelve un servicio OCR. La foto se borra del agente al terminar. Si Claude falla (límite de uso del plan, agente ocupado, formato no
+  legible) y hay un servicio OCR activo, se usa este de respaldo. `AGENTE_OCR_TIMEOUT` (300 s) limita cada lectura. Formatos: JPG, PNG, WebP, GIF y PDF.
+- **Con servicio externo**: no va dentro de la app; se sube como paquete `.celaut.bee` desde el panel (**Servicio OCR**) o con
+  `POST /ocr-service`. Sin servicio activo ni Claude, el OCR de tickets falla con un mensaje claro y el resto de la app funciona.
+
+Contrato, variables y funcionamiento del servicio en [docs/ocr-service.md](docs/ocr-service.md).
 
 Los tests de `tests/Feature/Payments` cubren el dinero: cuadre de gastos y ajustes, importación de Revolut (estados, reembolsos, comisiones, divisa, duplicados, céntimos), OCR y analíticas por mes en hora local.
 
