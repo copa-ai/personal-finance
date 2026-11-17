@@ -11,6 +11,12 @@ enum InstrumentType: string implements HasLabel
     case FUND = 'FUND';
     case CRYPTO = 'CRYPTO';
     case FX = 'FX';
+    case BOND = 'BOND';
+    case DEPOSIT = 'DEPOSIT';
+    case CASH = 'CASH';
+    case COMMODITY = 'COMMODITY';
+    case PENSION_PLAN = 'PENSION_PLAN';
+    case OTHER = 'OTHER';
 
     public function getLabel(): string
     {
@@ -20,6 +26,28 @@ enum InstrumentType: string implements HasLabel
             self::FUND => 'Fondo de inversión',
             self::CRYPTO => 'Criptomoneda',
             self::FX => 'Divisa',
+            self::BOND => 'Bono / renta fija',
+            self::DEPOSIT => 'Depósito',
+            self::CASH => 'Efectivo',
+            self::COMMODITY => 'Materia prima',
+            self::PENSION_PLAN => 'Plan de pensiones',
+            self::OTHER => 'Otro',
+        };
+    }
+
+    /**
+     * Clase de activo por defecto para el reparto de la cartera cuando el instrumento no la fija.
+     */
+    public function defaultAssetClass(): AssetClass
+    {
+        return match ($this) {
+            self::STOCK, self::ETF => AssetClass::EQUITY,
+            self::FUND, self::PENSION_PLAN => AssetClass::MIXED,
+            self::CRYPTO => AssetClass::CRYPTO,
+            self::BOND => AssetClass::FIXED_INCOME,
+            self::FX, self::DEPOSIT, self::CASH => AssetClass::CASH,
+            self::COMMODITY => AssetClass::COMMODITY,
+            self::OTHER => AssetClass::OTHER,
         };
     }
 }

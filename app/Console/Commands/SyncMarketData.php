@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\MarketProvider;
 use App\Models\Instrument;
 use App\Services\Market\MarketSyncService;
 use Illuminate\Console\Command;
@@ -18,6 +19,7 @@ class SyncMarketData extends Command
     {
         $instruments = Instrument::query()
             ->where('active', true)
+            ->where('provider', '!=', MarketProvider::MANUAL->value)
             ->when($this->option('symbol'), fn ($query, string $symbol) => $query->where('symbol', $symbol))
             ->orderBy('symbol')
             ->get();

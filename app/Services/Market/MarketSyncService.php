@@ -15,6 +15,11 @@ class MarketSyncService
      */
     public function sync(Instrument $instrument, ?int $backfillDays = null): int
     {
+        // Los precios manuales los apunta el usuario: no hay proveedor al que preguntar.
+        if ($instrument->provider === MarketProvider::MANUAL) {
+            return 0;
+        }
+
         $today = Carbon::now('UTC')->startOfDay();
         $lastDate = $instrument->priceBars()->max('date');
 
@@ -55,6 +60,7 @@ class MarketSyncService
         return match ($provider) {
             MarketProvider::YAHOO => app(YahooProvider::class),
             MarketProvider::BINANCE => app(BinanceProvider::class),
+            MarketProvider::MANUAL => throw new \LogicException('Un instrumento manual no tiene proveedor de datos.'),
         };
     }
 }

@@ -46,26 +46,36 @@ class FxService
      */
     public function toEur(string $currency, Carbon|string $date): float
     {
+        return (float) $this->eurPerUnit($currency, $date);
+    }
+
+    /**
+     * Lo mismo que toEur() pero como decimal exacto (bcmath, 12 decimales), para calcular dinero sin floats.
+     *
+     * @throws RuntimeException si no hay tipo de cambio.
+     */
+    public function eurPerUnit(string $currency, Carbon|string $date): string
+    {
         $currency = strtoupper($currency);
 
         if ($currency === 'EUR') {
-            return 1.0;
+            return '1';
         }
 
         $date = Carbon::parse($date)->toDateString();
-        $bar = Instrument::query()
+        $close = Instrument::query()
             ->where('symbol', self::pairSymbol($currency))
             ->where('type', InstrumentType::FX->value)
             ->first()
             ?->priceBars()
             ->where('date', '<=', $date)
             ->orderByDesc('date')
-            ->first();
+            ->value('close');
 
-        if ($bar === null || (float) $bar->close <= 0) {
+        if ($close === null || bccomp((string) $close, '0', 8) <= 0) {
             throw new RuntimeException("No hay tipo de cambio EUR/{$currency} anterior o igual a {$date}.");
         }
 
-        return 1 / (float) $bar->close;
+        return bcdiv('1', (string) $close, 12);
     }
 }

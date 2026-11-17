@@ -1,5 +1,7 @@
 <?php
 
+use App\Console\Commands\InvestmentsReminders;
+use App\Console\Commands\InvestmentsSnapshot;
 use App\Console\Commands\SyncMarketData;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -16,3 +18,13 @@ Schedule::command(SyncMarketData::class)
     ->timezone('Europe/Madrid')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Inversiones: recordatorios por la mañana y foto de la cartera al final del día.
+Schedule::command(InvestmentsReminders::class)
+    ->dailyAt('08:00')
+    ->timezone('Europe/Madrid')
+    ->withoutOverlapping();
+
+Schedule::command(InvestmentsSnapshot::class)
+    ->dailyAt('23:50')
+    ->timezone('Europe/Madrid');
