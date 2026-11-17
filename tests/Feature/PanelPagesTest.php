@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\MovementType;
 use App\Filament\Resources\Expenses\Pages\EditExpense;
 use App\Filament\Resources\Expenses\RelationManagers\ExpenseItemsRelationManager;
+use App\Filament\Widgets\StockTable;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -41,6 +42,18 @@ class PanelPagesTest extends TestCase
         ] as $url) {
             $this->get($url)->assertOk();
         }
+    }
+
+    public function test_stock_table_renders_grouped_products(): void
+    {
+        $expense = $this->createExpense('20.00');
+        $this->addItem($expense, '3', '5.00', ['concept' => 'Leche']);
+        $this->addItem($expense, '1', '0.00', ['concept' => 'Leche', 'movement_type' => MovementType::CONSUMPTION]);
+
+        Livewire::test(StockTable::class)
+            ->assertSuccessful()
+            ->assertCountTableRecords(1)
+            ->assertSee('Leche');
     }
 
     public function test_item_can_be_created_with_movement_type_from_the_panel(): void

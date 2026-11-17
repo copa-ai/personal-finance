@@ -16,6 +16,13 @@ class StockService
      */
     public function query(): Builder
     {
+        // La agrupacion va en una subconsulta que hace de tabla `expense_items`: Filament anade `expense_items.id` al SELECT y al
+        // ORDER BY, y PostgreSQL lo rechaza (42803) si la consulta con GROUP BY es la de nivel superior. El `id` de cada fila es el MD5.
+        return ExpenseItem::query()->fromSub($this->agrupada(), 'expense_items');
+    }
+
+    private function agrupada(): Builder
+    {
         return ExpenseItem::query()
             ->join('expenses', 'expense_items.expense_id', '=', 'expenses.id')
             ->leftJoin('establishments', 'expenses.establishment_id', '=', 'establishments.id')
