@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\MovementType;
 use App\Filament\Resources\Expenses\Pages\EditExpense;
 use App\Filament\Resources\Expenses\RelationManagers\ExpenseItemsRelationManager;
+use App\Filament\Widgets\ExpenseAnalysisItemsTable;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -40,6 +41,22 @@ class PanelPagesTest extends TestCase
         ] as $url) {
             $this->get($url)->assertOk();
         }
+    }
+
+    public function test_line_totals_are_summed_in_the_item_tables(): void
+    {
+        $expense = $this->createExpense('20.00');
+        $this->addItem($expense, '2', '5.00', ['concept' => 'Leche']);
+        $this->addItem($expense, '1', '10.00', ['concept' => 'Pan']);
+
+        $analysis = Livewire::test(ExpenseAnalysisItemsTable::class)->assertSuccessful()->assertSee('Leche');
+        $this->assertMatchesRegularExpression('/20[.,]00\s*€/u', $analysis->html());
+
+        $items = Livewire::test(ExpenseItemsRelationManager::class, [
+            'ownerRecord' => $expense,
+            'pageClass' => EditExpense::class,
+        ])->assertSuccessful()->assertSee('Leche');
+        $this->assertMatchesRegularExpression('/20[.,]00\s*€/u', $items->html());
     }
 
     public function test_item_can_be_created_with_movement_type_from_the_panel(): void

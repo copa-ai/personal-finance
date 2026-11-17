@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 use Kirschbaum\Commentions\Contracts\Commentable;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Illuminate\Support\Facades\DB;
 use Kirschbaum\Commentions\HasComments;
 
 class ExpenseItem extends Model implements Commentable
@@ -19,6 +21,19 @@ class ExpenseItem extends Model implements Commentable
 
     /** SQL del importe de una linea (cantidad x precio unitario, a 2 decimales): ya no hay columna generada. */
     public const LINE_TOTAL_SQL = 'ROUND(expense_items.quantity * expense_items.unit_price, 2)';
+
+    /**
+     * Total de la columna de importe de linea. `line_total` no es columna, así que el sumador por defecto de Filament
+     * (`sum("expense_items"."line_total")`) falla. Con `->query()` Filament no usa su SELECT agrupado y aplica `->using()`.
+     */
+    public static function lineTotalSummarizer(): Sum
+    {
+        return Sum::make()
+            ->numeric(decimalPlaces: 2)
+            ->suffix(' €')
+            ->query(fn ($query) => $query)
+            ->using(fn ($query) => $query->sum(DB::raw(self::LINE_TOTAL_SQL)));
+    }
 
     protected $fillable = [
         'expense_id',

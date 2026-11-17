@@ -5,14 +5,12 @@ namespace App\Filament\Resources\Expenses\Tables;
 use App\Models\ExpenseItem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Kirschbaum\Commentions\Filament\Actions\CommentsAction;
-use Filament\Tables\Columns\Summarizers\Sum;
 
 class ExpenseItemsTable
 {
@@ -44,7 +42,7 @@ class ExpenseItemsTable
                     ->sortable(),
                 TextColumn::make('line_total')
                     ->label('Total de Línea')
-                    ->summarize(Sum::make()->using(fn ($query) => $query->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL))))
+                    ->summarize(ExpenseItem::lineTotalSummarizer())
                     ->local_money()
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByRaw(ExpenseItem::LINE_TOTAL_SQL.' '.$direction)),
                 TextColumn::make('end_date')

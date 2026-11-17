@@ -6,13 +6,11 @@ use App\Filament\Resources\Expenses\ExpenseResource;
 use App\Models\ExpenseItem;
 use App\Services\ExpenseAnalyticsService;
 use Filament\Actions\Action;
-use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class ExpenseAnalysisItemsTable extends TableWidget
 {
@@ -58,7 +56,7 @@ class ExpenseAnalysisItemsTable extends TableWidget
                 TextColumn::make('line_total')
                     ->label('Total línea')
                     ->local_money()
-                    ->summarize(Sum::make()->using(fn ($query) => $query->sum(DB::raw(ExpenseItem::LINE_TOTAL_SQL))))
+                    ->summarize(ExpenseItem::lineTotalSummarizer())
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderByRaw(ExpenseItem::LINE_TOTAL_SQL.' '.$direction))
             ])
             ->recordActions([
