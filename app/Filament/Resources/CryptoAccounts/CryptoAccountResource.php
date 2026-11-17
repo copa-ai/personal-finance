@@ -27,6 +27,9 @@ class CryptoAccountResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Finanzas';
 
+    // Sustituido por Inversiones: los saldos se migraron a plataformas e instrumentos.
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'Cuenta cripto';
 
     protected static ?string $pluralModelLabel = 'Cuentas cripto';

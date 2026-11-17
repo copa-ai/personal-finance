@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Instruments;
 use App\Filament\Resources\Instruments\Pages\CreateInstrument;
 use App\Filament\Resources\Instruments\Pages\EditInstrument;
 use App\Filament\Resources\Instruments\Pages\ListInstruments;
+use App\Filament\Resources\Instruments\RelationManagers\ManualPricesRelationManager;
 use App\Filament\Resources\Instruments\Schemas\InstrumentForm;
 use App\Filament\Resources\Instruments\Tables\InstrumentsTable;
 use App\Models\Instrument;
@@ -36,6 +37,13 @@ class InstrumentResource extends Resource
     public static function table(Table $table): Table
     {
         return InstrumentsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            ManualPricesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

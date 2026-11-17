@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\MarketProvider;
 use App\Models\Instrument;
 use App\Services\Market\MarketMetricsService;
 use Filament\Pages\Page;
@@ -52,7 +53,8 @@ class Market extends Page
      */
     public function instruments(): Collection
     {
-        return Instrument::query()->orderBy('symbol')->get()->keyBy('id');
+        // Los instrumentos manuales no tienen velas de mercado.
+        return Instrument::query()->where('provider', '!=', MarketProvider::MANUAL->value)->orderBy('symbol')->get()->keyBy('id');
     }
 
     public function instrument(): ?Instrument

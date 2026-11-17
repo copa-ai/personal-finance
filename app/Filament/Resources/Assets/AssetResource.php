@@ -16,6 +16,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class AssetResource extends Resource
@@ -31,6 +32,14 @@ class AssetResource extends Resource
     protected static ?string $modelLabel = 'Activo';
 
     protected static ?string $pluralModelLabel = 'Activos';
+
+    /**
+     * Los fondos, acciones, planes de pensiones y depósitos migrados viven ahora en Inversiones.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->whereNull('migrated_at');
+    }
 
     public static function form(Schema $schema): Schema
     {

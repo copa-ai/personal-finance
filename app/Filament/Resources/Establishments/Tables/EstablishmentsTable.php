@@ -25,6 +25,11 @@ class EstablishmentsTable
                 TextColumn::make('category.name')
                     ->label('Category')
                     ->sortable(),
+                TextColumn::make('investmentPlatform.name')
+                    ->label('Plataforma de inversión')
+                    ->badge()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Created')
                     ->dateTime()

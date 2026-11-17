@@ -60,6 +60,7 @@ class InstrumentsTable
                 Action::make('sync')
                     ->label('Sincronizar')
                     ->icon('heroicon-o-arrow-path')
+                    ->hidden(fn (Instrument $record): bool => $record->isManual())
                     ->action(function (Instrument $record, MarketSyncService $service): void {
                         try {
                             $count = $service->sync($record);
