@@ -15,7 +15,11 @@ return new class extends Migration
             $table->uuid('parent_id')->nullable()->index();
             $table->timestamps(0);
             $table->softDeletes('deleted_at', 0);
+        });
 
+        // Aparte de la creacion: en PostgreSQL la clave foranea a la propia tabla se emitia antes que la clave primaria
+        // (los indices de columna van despues de los comandos explicitos) y fallaba con «no unique constraint matching given keys».
+        Schema::table('categories', function (Blueprint $table): void {
             $table->foreign('parent_id')->references('id')->on('categories')->nullOnDelete();
         });
     }
