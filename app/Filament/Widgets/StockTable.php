@@ -13,14 +13,10 @@ class StockTable extends TableWidget
 
     protected int | string | array $columnSpan = 'full';
 
-    protected function getTableQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        return app(StockService::class)->query();
-    }
-
     public function table(Table $table): Table
     {
         return $table
+            ->query(fn () => app(StockService::class)->query())
             ->defaultSort('remaining_quantity', 'asc')
             ->columns([
                 TextColumn::make('concept')
