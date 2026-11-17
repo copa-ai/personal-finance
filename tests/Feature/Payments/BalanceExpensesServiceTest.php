@@ -5,7 +5,6 @@ namespace Tests\Feature\Payments;
 use App\Enums\MovementType;
 use App\Models\Expense;
 use App\Services\BalanceExpensesService;
-use App\Services\StockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\Concerns\CreatesExpenses;
@@ -121,16 +120,5 @@ class BalanceExpensesServiceTest extends TestCase
         $this->assertSame('10.00', $this->itemsTotal($firstDay));
         $this->assertSame('0.00', $this->itemsTotal($nextDay));
         $this->assertSame('0.00', $this->itemsTotal($previousDay));
-    }
-
-    public function test_adjustments_do_not_appear_in_stock(): void
-    {
-        $expense = $this->createExpense('20.00');
-        $this->addItem($expense, '1', '15.00', ['concept' => 'Leche']);
-
-        $this->service()->execute();
-
-        $concepts = app(StockService::class)->query()->get()->pluck('concept')->all();
-        $this->assertSame(['Leche'], $concepts);
     }
 }

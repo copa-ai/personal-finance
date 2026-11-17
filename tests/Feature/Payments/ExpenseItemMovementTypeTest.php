@@ -4,7 +4,6 @@ namespace Tests\Feature\Payments;
 
 use App\Enums\MovementType;
 use App\Models\ExpenseItem;
-use App\Services\StockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesExpenses;
 use Tests\TestCase;
@@ -46,24 +45,6 @@ class ExpenseItemMovementTypeTest extends TestCase
         $item = $this->addItem($expense, '3', '2.49');
 
         $this->assertSame('7.47', $item->fresh()->line_total);
-    }
-
-    public function test_stock_counts_purchases_minus_consumption_and_loss_and_ignores_adjustments(): void
-    {
-        $expense = $this->createExpense('10.00');
-
-        $this->addItem($expense, '6', '1.00', ['concept' => 'Huevos']);
-        $this->addItem($expense, '2', '0', ['concept' => 'Huevos', 'movement_type' => MovementType::CONSUMPTION]);
-        $this->addItem($expense, '1', '0', ['concept' => 'Huevos', 'movement_type' => MovementType::LOSS]);
-        $this->addItem($expense, '1', '4.00', ['concept' => 'Ajuste de descuadre', 'movement_type' => MovementType::ADJUSTMENT]);
-
-        $rows = app(StockService::class)->query()->get();
-
-        $this->assertCount(1, $rows);
-        $this->assertSame('Huevos', $rows[0]->concept);
-        $this->assertEquals(3, $rows[0]->remaining_quantity);
-        $this->assertEquals(6, $rows[0]->purchased_quantity);
-        $this->assertEquals(3, $rows[0]->consumed_quantity);
     }
 
     public function test_ocr_is_available_when_only_adjustments_exist(): void

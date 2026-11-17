@@ -63,7 +63,7 @@ class ExpenseItemForm
             ->editOptionForm(CategoryForm::components());
         $conceptSectionSchema[] = Select::make('movement_type')
             ->label('Tipo de movimiento')
-            ->helperText('Compra suma al stock; consumo y pérdida restan (usa precio 0). Los ajustes los crea el cuadre automático.')
+            ->helperText('Consumo y pérdida no mueven dinero (usa precio 0). Los ajustes los crea el cuadre automático.')
             ->options(MovementType::class)
             ->default(MovementType::PURCHASE->value)
             ->required();

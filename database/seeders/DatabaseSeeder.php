@@ -71,8 +71,6 @@ class DatabaseSeeder extends Seeder
             ['category_id' => $categorias[$categoria]->id],
         ));
 
-        // Un producto que se consume en otra tienda que donde se compró lleva la categoría explícita: el stock agrupa por concepto y
-        // categoría efectiva (la de la línea o, si no, la de la tienda).
         // [tienda, hace_n_dias, [[concepto, cantidad, precio, movimiento, categoria|null, consumible], ...]]
         $compras = [
             ['Mercadona', 40, [
@@ -87,7 +85,7 @@ class DatabaseSeeder extends Seeder
                 ['Café', 1, '4.20', 'PURCHASE', null, true],
             ]],
             ['Primor', 20, [
-                ['Papel higiénico', 24, '0.28', 'PURCHASE', 'Higiene', true],
+                ['Papel higiénico', 24, '0.28', 'PURCHASE', null, true],
                 ['Champú', 2, '3.50', 'PURCHASE', null, true],
             ]],
             ['Leroy Merlin', 15, [
@@ -100,23 +98,6 @@ class DatabaseSeeder extends Seeder
             ]],
             ['Cines Yelmo', 5, [
                 ['Entradas', 2, '9.50', 'PURCHASE', 'Ocio', false],
-            ]],
-            // Consumos y pérdidas: no mueven dinero (precio 0), solo bajan el stock.
-            ['Mercadona', 30, [
-                ['Leche', 10, '0', 'CONSUMPTION', null, true],
-                ['Huevos', 9, '0', 'CONSUMPTION', null, true],
-                ['Arroz', 1, '0', 'CONSUMPTION', null, true],
-                ['Pan', 4, '0', 'CONSUMPTION', null, true],
-            ]],
-            ['Mercadona', 12, [
-                ['Leche', 11, '0', 'CONSUMPTION', null, true],
-                ['Aceite de oliva', 1, '0', 'CONSUMPTION', null, true],
-                ['Café', 1, '0', 'CONSUMPTION', null, true],
-                ['Papel higiénico', 6, '0', 'CONSUMPTION', 'Higiene', true],
-            ]],
-            ['Mercadona', 3, [
-                ['Huevos', 3, '0', 'LOSS', null, true],
-                ['Pan', 3, '0', 'CONSUMPTION', null, true],
             ]],
         ];
 
