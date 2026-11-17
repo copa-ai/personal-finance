@@ -89,4 +89,14 @@ class FxServiceTest extends TestCase
 
         $this->assertSame(0, Instrument::query()->where('type', InstrumentType::FX->value)->count());
     }
+
+    public function test_eur_per_unit_is_an_exact_decimal_string(): void
+    {
+        $this->bar($this->pair(), '2026-10-01', 1.25);
+
+        $fx = app(FxService::class);
+
+        $this->assertSame('1', $fx->eurPerUnit('EUR', '2026-10-01'));
+        $this->assertSame('0.800000000000', $fx->eurPerUnit('USD', '2026-10-03'));
+    }
 }

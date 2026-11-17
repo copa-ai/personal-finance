@@ -3,7 +3,10 @@
 namespace Tests\Feature\Payments;
 
 use App\Enums\MovementType;
+use App\Enums\PlatformType;
 use App\Models\Category;
+use App\Models\Establishment;
+use App\Models\InvestmentPlatform;
 use App\Services\ExpenseAnalyticsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -54,5 +57,19 @@ class ExpenseAnalyticsServiceTest extends TestCase
 
         $this->assertSame(5.0, $service->totalForFilters(['month' => '2026-06', 'categoryId' => $food->id]));
         $this->assertSame(9.0, $service->totalForDateRange(['month' => '2026-06', 'categoryId' => $food->id]));
+    }
+
+    public function test_transfers_to_investment_platforms_are_not_spending(): void
+    {
+        $platform = InvestmentPlatform::query()->create(['name' => 'MyInvestor', 'type' => PlatformType::BROKER]);
+        $broker = Establishment::query()->create(['name' => 'To MyInvestor', 'investment_platform_id' => $platform->id]);
+        $shop = Establishment::query()->create(['name' => 'Mercadona']);
+
+        $transfer = $this->createExpense('500.00', attributes: ['establishment_id' => $broker->id]);
+        $this->addItem($transfer, '1', '500.00');
+        $groceries = $this->createExpense('40.00', attributes: ['establishment_id' => $shop->id]);
+        $this->addItem($groceries, '1', '40.00');
+
+        $this->assertSame(40.0, app(ExpenseAnalyticsService::class)->totalForFilters(['month' => '2026-06']));
     }
 }

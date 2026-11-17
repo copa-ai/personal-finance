@@ -149,4 +149,16 @@ class MarketSyncTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    public function test_manual_instruments_are_never_synced(): void
+    {
+        Http::fake();
+        $manual = Instrument::query()->create(['name' => 'Depósito', 'type' => InstrumentType::DEPOSIT, 'provider' => MarketProvider::MANUAL, 'currency' => 'EUR']);
+
+        $this->assertSame(0, app(\App\Services\Market\MarketSyncService::class)->sync($manual));
+        $this->artisan('market:sync')->expectsOutputToContain('No hay instrumentos activos')->assertSuccessful();
+
+        Http::assertNothingSent();
+        $this->assertSame(0, PriceBar::query()->count());
+    }
 }
