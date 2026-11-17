@@ -20,14 +20,13 @@
 #                             El mismo proceso atiende un tercer slot, «cards» (http2 -> grpc -> cards) en 0.0.0.0:50052: los
 #                             gastos pendientes de revisar como mazo de tarjetas, contra 127.0.0.1:8001/interno/cards con el mismo Bearer. Solo se suma CARDS_PUERTO.
 #
-# Usuario inicial del panel: php artisan app:ensure-user con PF_ADMIN_EMAIL y PF_ADMIN_PASSWORD (variables opcionales de service.json -> envs;
-# la contraseña, de 12 caracteres o mas, solo viaja a ese comando). Sin ellas: admin@demo.com / cambia-esta-clave. Si el usuario ya existe
-# no se toca, asi que en los arranques siguientes no cambia nada.
+# Usuario inicial del panel: php artisan app:ensure-user crea admin@demo.com / cambia-esta-clave, solo si no hay ningun usuario. Una vez
+# cambiados el correo o la contraseña en el perfil, en los arranques siguientes no cambia nada.
 #
 # Base de datos: PostgreSQL compartida entre dispositivos. `php artisan finance:base-datos` (que habla con el nodo con `celaut`,
 # de celaut-project/service-library) la busca en la red «postgres» (PostgreSQL con el esquema de personal-finance) o lanza pf-postgres como hijo.
 #
-# Variables de service.json -> envs: FINANCE_RED (opcional) y PF_ADMIN_EMAIL/PF_ADMIN_PASSWORD (opcionales). Todo lo demas (zona horaria, modelo y simultaneidad del agente, ajustes
+# Variables de service.json -> envs: FINANCE_RED (opcional, la unica). Todo lo demas (zona horaria, modelo y simultaneidad del agente, ajustes
 # de la eleccion y fusion de bases) es constante: no lo toca el usuario.
 # FINANCE_RED: lo que hay que compartir entre dispositivos que usan la misma base, en una sola variable corta
 # (base64url de «APP_KEY|cluster|clave_bd»; la da Ajustes -> Variables compartidas). Trae APP_KEY (cifra el token de Claude y las
@@ -205,12 +204,11 @@ done
 fase migraciones ok
 agente_vigilar
 fase usuario "en curso"
-# Solo si no hay ningun usuario (app:ensure-user no toca uno que ya exista). PF_ADMIN_PASSWORD se pasa unicamente a este comando.
-ADMIN_EMAIL=${PF_ADMIN_EMAIL:-admin@demo.com}
-ADMIN_CLAVE=${PF_ADMIN_PASSWORD:-cambia-esta-clave}
+# Solo si no hay ningun usuario (app:ensure-user no toca uno que ya exista). La contraseña se pasa unicamente a este comando.
+ADMIN_EMAIL=admin@demo.com
+ADMIN_CLAVE=cambia-esta-clave
 if ( como app "${ENTORNO_APP[@]}" PF_ADMIN_PASSWORD="$ADMIN_CLAVE" -- php artisan app:ensure-user "$ADMIN_EMAIL" --if-empty --no-interaction ); then
-    if [ -z "${PF_ADMIN_PASSWORD:-}" ]; then fase usuario aviso "usuario por defecto $ADMIN_EMAIL con la contraseña del README: define PF_ADMIN_EMAIL y PF_ADMIN_PASSWORD o cambiala en el perfil"
-    else fase usuario ok "$ADMIN_EMAIL"; fi
+    fase usuario aviso "usuario inicial $ADMIN_EMAIL con la contraseña del README: cambiala en el perfil"
 else fase usuario aviso "no se pudo crear el usuario inicial; ver app.log"; fi
 
 # --- Web: FrankenPHP (Caddy con PHP embebido; HTTP, el TLS lo pone el tunel), con el entorno de la app y nada mas ---

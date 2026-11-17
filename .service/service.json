@@ -70,9 +70,7 @@
     ],
     "uses_gateway": true,
     "envs": [
-        "FINANCE_RED",
-        "PF_ADMIN_EMAIL",
-        "PF_ADMIN_PASSWORD"
+        "FINANCE_RED"
     ],
     "network": [
         {

@@ -162,12 +162,12 @@ docker exec -i personal_finance_db env PGPASSWORD=secret pg_dump -U laravel -d p
 
 USUARIOS
 
-Crear un usuario (no modifica uno existente). La contraseña se lee de `PF_ADMIN_PASSWORD` o se pregunta, mínimo 12 caracteres:
+Crear un usuario (no modifica uno existente). La contraseña se lee de `PF_ADMIN_PASSWORD` (solo en local) o se pregunta, mínimo 12 caracteres:
 """
 php artisan app:ensure-user tu@email.com --name="Tu nombre"
 """
 
-En Celaut, `start.sh` lo hace al arrancar (solo si no existe ya) con `PF_ADMIN_EMAIL` y `PF_ADMIN_PASSWORD` (`nodo execute -e ...`; contraseña de 12 caracteres o más). Sin ellas crea **`admin@demo.com` / `cambia-esta-clave`** y la página de estado avisa: define las variables o cambia la contraseña en el primer acceso.
+En Celaut, `start.sh` lo hace al arrancar (solo si no hay ningún usuario): crea **`admin@demo.com` / `cambia-esta-clave`** y la página de estado avisa de que hay que cambiarla en el primer acceso (perfil del panel). El servicio no acepta variables para esto.
 
 `php artisan db:seed` crea los usuarios de ejemplo con la contraseña de `SEED_PASSWORD`, o con una aleatoria que muestra por consola.
 
@@ -199,7 +199,7 @@ Son cifras de partida: la memoria real se mide con `/memoria.json` (lo escribe `
 ```bash
 nodo pack .                                  # genera el .celaut.bee (requiere packer configurado, ver docs/PACKING.md)
 nodo estimate personal-finance               # veredicto de memoria y coste
-nodo inspect personal-finance                # variables aceptadas: FINANCE_RED, PF_ADMIN_EMAIL, PF_ADMIN_PASSWORD (todas opcionales)
+nodo inspect personal-finance                # la única variable aceptada es FINANCE_RED (opcional)
 nodo instances                               # id (= token) de la instancia
 nodo tunnel <instancia> 8080 --listen 8080   # y abre http://127.0.0.1:8080 (Filament)
 ```
