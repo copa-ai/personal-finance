@@ -29,7 +29,6 @@ class ExpenseItem extends Model implements Commentable
         // 'line_total' no es columna: lo calcula getLineTotalAttribute()
         'tags',
         'item_type',
-        'is_consumable',
         'end_date',
         'recurrence',
         'projected_start_date',
@@ -41,7 +40,6 @@ class ExpenseItem extends Model implements Commentable
         'quantity' => 'decimal:3',
         'unit_price' => 'decimal:2',
         'tags' => 'array',
-        'is_consumable' => 'boolean',
         'end_date' => 'date',
         'projected_start_date' => 'date',
         'actual_start_date' => 'date',

@@ -126,7 +126,6 @@ class OcrService
                     'tags' => [],
                     'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
                     'recurrence' => Recurrence::NONE,
-                    'is_consumable' => true,
                 ]);
 
                 $importedCount++;

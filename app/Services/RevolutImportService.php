@@ -150,7 +150,6 @@ class RevolutImportService
                         'unit_price' => $formattedTotal,
                         'tags' => [],
                         'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
-                        'is_consumable' => true,
                         'recurrence' => Recurrence::NONE,
                         'actual_start_date' => $date->toDateString(),
                     ]);

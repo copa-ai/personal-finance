@@ -35,7 +35,6 @@ class ExpenseObserver
                 'unit_price' => round((float) $expense->total / $units, 2),
                 'item_type' => ExpenseItemType::VARIABLE_IRREGULAR,
                 'recurrence' => Recurrence::NONE,
-                'is_consumable' => true,
             ]);
 
             // Si el total no se divide exacto entre las unidades, el redondeo deja céntimos sueltos.

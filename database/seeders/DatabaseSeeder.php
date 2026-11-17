@@ -71,33 +71,33 @@ class DatabaseSeeder extends Seeder
             ['category_id' => $categorias[$categoria]->id],
         ));
 
-        // [tienda, hace_n_dias, [[concepto, cantidad, precio, movimiento, categoria|null, consumible], ...]]
+        // [tienda, hace_n_dias, [[concepto, cantidad, precio, movimiento, categoria|null], ...]]
         $compras = [
             ['Mercadona', 40, [
-                ['Leche', 12, '0.95', 'PURCHASE', null, true],
-                ['Huevos', 12, '0.30', 'PURCHASE', null, true],
-                ['Arroz', 2, '1.40', 'PURCHASE', null, true],
-                ['Pan', 4, '1.10', 'PURCHASE', null, true],
+                ['Leche', 12, '0.95', 'PURCHASE', null],
+                ['Huevos', 12, '0.30', 'PURCHASE', null],
+                ['Arroz', 2, '1.40', 'PURCHASE', null],
+                ['Pan', 4, '1.10', 'PURCHASE', null],
             ]],
             ['Carrefour', 25, [
-                ['Leche', 12, '0.92', 'PURCHASE', null, true],
-                ['Aceite de oliva', 2, '8.50', 'PURCHASE', null, true],
-                ['Café', 1, '4.20', 'PURCHASE', null, true],
+                ['Leche', 12, '0.92', 'PURCHASE', null],
+                ['Aceite de oliva', 2, '8.50', 'PURCHASE', null],
+                ['Café', 1, '4.20', 'PURCHASE', null],
             ]],
             ['Primor', 20, [
-                ['Papel higiénico', 24, '0.28', 'PURCHASE', null, true],
-                ['Champú', 2, '3.50', 'PURCHASE', null, true],
+                ['Papel higiénico', 24, '0.28', 'PURCHASE', null],
+                ['Champú', 2, '3.50', 'PURCHASE', null],
             ]],
             ['Leroy Merlin', 15, [
-                ['Bombilla LED', 4, '2.50', 'PURCHASE', null, false],
+                ['Bombilla LED', 4, '2.50', 'PURCHASE', null],
             ]],
             ['Mercadona', 8, [
-                ['Huevos', 12, '0.32', 'PURCHASE', null, true],
-                ['Pan', 3, '1.10', 'PURCHASE', null, true],
-                ['Café', 1, '4.50', 'PURCHASE', null, true],
+                ['Huevos', 12, '0.32', 'PURCHASE', null],
+                ['Pan', 3, '1.10', 'PURCHASE', null],
+                ['Café', 1, '4.50', 'PURCHASE', null],
             ]],
             ['Cines Yelmo', 5, [
-                ['Entradas', 2, '9.50', 'PURCHASE', 'Ocio', false],
+                ['Entradas', 2, '9.50', 'PURCHASE', 'Ocio'],
             ]],
         ];
 
@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
                 'status' => ExpenseStatus::PAID,
             ]);
 
-            foreach ($lineas as [$concepto, $cantidad, $precio, $movimiento, $categoria, $consumible]) {
+            foreach ($lineas as [$concepto, $cantidad, $precio, $movimiento, $categoria]) {
                 ExpenseItem::query()->create([
                     'expense_id' => $gasto->id,
                     'category_id' => $categoria ? $categorias[$categoria]->id : null,
@@ -121,7 +121,6 @@ class DatabaseSeeder extends Seeder
                     'item_type' => ExpenseItemType::VARIABLE_REGULAR,
                     'recurrence' => Recurrence::NONE,
                     'movement_type' => MovementType::from($movimiento),
-                    'is_consumable' => $consumible,
                 ]);
             }
         }

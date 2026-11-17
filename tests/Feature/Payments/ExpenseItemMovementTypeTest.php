@@ -62,14 +62,13 @@ class ExpenseItemMovementTypeTest extends TestCase
     public function test_migration_fixes_adjustments_saved_as_purchases(): void
     {
         $expense = $this->createExpense('20.00');
-        $wrong = $this->addItem($expense, '1', '5.00', ['concept' => 'Ajuste de descuadre', 'is_consumable' => true]);
+        $wrong = $this->addItem($expense, '1', '5.00', ['concept' => 'Ajuste de descuadre']);
         $real = $this->addItem($expense, '1', '15.00', ['concept' => 'Leche']);
 
         $migration = require database_path('migrations/2026_10_11_000001_fix_adjustment_items_saved_as_purchase.php');
         $migration->up();
 
         $this->assertSame(MovementType::ADJUSTMENT, $wrong->fresh()->movement_type);
-        $this->assertFalse($wrong->fresh()->is_consumable);
         $this->assertSame(MovementType::PURCHASE, $real->fresh()->movement_type);
     }
 }

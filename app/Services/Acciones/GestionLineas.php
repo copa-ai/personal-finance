@@ -33,7 +33,6 @@ class GestionLineas
             'tags' => [],
             'item_type' => $datos['tipo'] ?? ExpenseItemType::VARIABLE_IRREGULAR,
             'recurrence' => $datos['recurrencia'] ?? Recurrence::NONE,
-            'is_consumable' => true,
         ]);
         $linea->save();
         $gasto->forgetSubexpensesTotal();

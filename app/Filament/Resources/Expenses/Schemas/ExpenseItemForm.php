@@ -11,7 +11,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -188,10 +187,6 @@ class ExpenseItemForm
                         ->helperText('Cada cuánto se repite este subgasto (si aplica). Se usa para clasificación y filtros.')
                         ->options(Recurrence::class)
                         ->default('NONE')
-                        ->required(),
-                    Toggle::make('is_consumable')
-                        ->label('¿Consumible?')
-                        ->default(true)
                         ->required(),
                     DatePicker::make('actual_start_date')
                         ->label('Fecha Inicio Real')

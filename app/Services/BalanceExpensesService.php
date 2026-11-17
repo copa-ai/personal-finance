@@ -87,7 +87,6 @@ class BalanceExpensesService
             'quantity'    => 1,
             'unit_price'  => $unitPrice,
             'movement_type' => MovementType::ADJUSTMENT,
-            'is_consumable' => false,
         ]);
 
         $expense->forgetSubexpensesTotal();

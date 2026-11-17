@@ -29,7 +29,6 @@ class BalanceExpensesServiceTest extends TestCase
 
         $adjustment = $expense->items()->where('movement_type', MovementType::ADJUSTMENT)->sole();
         $this->assertSame('2.50', $adjustment->line_total);
-        $this->assertFalse($adjustment->is_consumable);
         $this->assertSame('20.00', $this->itemsTotal($expense));
     }
 

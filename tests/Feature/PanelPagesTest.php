@@ -57,7 +57,6 @@ class PanelPagesTest extends TestCase
                 'movement_type' => MovementType::CONSUMPTION->value,
                 'item_type' => 'VARIABLE_IRREGULAR',
                 'recurrence' => 'NONE',
-                'is_consumable' => true,
             ])
             ->assertHasNoTableActionErrors();
 
