@@ -2,14 +2,14 @@ services:
   app:
     build:
       context: .
-      dockerfile: docker/php/Dockerfile
+      dockerfile: docker/dev/Dockerfile
     container_name: personal_finance_app
     working_dir: /var/www/html
-    command: bash docker/php/start.sh
+    command: bash docker/dev/start.sh
     ports:
       - "8080:8080"
     volumes:
-      - ./:/var/www/html
+      - ./:/var/www/html:z
     environment:
       # artisan serve atiende una petición a la vez si no se le dan workers.
       PHP_CLI_SERVER_WORKERS: 4
@@ -24,6 +24,8 @@ services:
       DB_PASSWORD: "${DB_PASSWORD:-secret}"
       OCR_TIMEOUT: 1200
       OCR_SERVICE_URL: "${OCR_SERVICE_URL:-}"
+      # Usuario (admin@demo.com) y gastos de ejemplo (database/seeders/DatabaseSeeder.php); solo para desarrollo local.
+      SEED_PASSWORD: "${SEED_PASSWORD:-password}"
     depends_on:
       db:
         condition: service_healthy
@@ -31,13 +33,13 @@ services:
   worker:
     build:
       context: .
-      dockerfile: docker/php/Dockerfile
+      dockerfile: docker/dev/Dockerfile
     container_name: personal_finance_worker
     working_dir: /var/www/html
     command: php artisan queue:work --sleep=3 --tries=3
     restart: unless-stopped
     volumes:
-      - ./:/var/www/html
+      - ./:/var/www/html:z
     environment:
       APP_ENV: local
       # Con debug activo, cualquier error muestra la traza y la configuración a quien abra la web.
@@ -57,13 +59,13 @@ services:
   scheduler:
     build:
       context: .
-      dockerfile: docker/php/Dockerfile
+      dockerfile: docker/dev/Dockerfile
     container_name: personal_finance_scheduler
     working_dir: /var/www/html
     command: php artisan schedule:work --verbose --no-interaction
     restart: unless-stopped
     volumes:
-      - ./:/var/www/html
+      - ./:/var/www/html:z
     environment:
       APP_ENV: local
       # Con debug activo, cualquier error muestra la traza y la configuración a quien abra la web.
@@ -93,7 +95,7 @@ services:
       POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
       PGDATA: /var/lib/postgresql/data
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U laravel -d personal_finance"]
       interval: 5s
@@ -101,4 +103,4 @@ services:
       retries: 12
 
 volumes:
-  pgdata:
+  pgdata_dev:
