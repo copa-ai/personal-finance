@@ -23,3 +23,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .codex
+# Python bytecode (docker/servicio, docker/pruebas)
+__pycache__/
