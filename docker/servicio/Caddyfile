@@ -11,9 +11,11 @@
 }
 
 :8080 {
-	root * /opt/finance/app/public
+	root * /opt/finance/project/public
 	encode zstd gzip
 	# Los tickets son fotos, pero el paquete .celaut.bee del servicio OCR puede pesar cientos de MB (php.ini: 1024M).
+	# The Coder page uploads a service package (.celaut.bee, up to config coder.paquete.tamano_maximo_mb = 512) through the Livewire
+	# upload route (/livewire*/upload-file). This limit is above it, so no extra rule is needed. Keep it in step with config/coder.php.
 	request_body {
 		max_size 1100MB
 	}
@@ -56,7 +58,7 @@
 # (archivos de 4 MiB en base64 caben en 8 MiB). Laravel exige ademas el Bearer CHAT_SECRETO.
 http://127.0.0.1:8001 {
 	bind 127.0.0.1
-	root * /opt/finance/app/public
+	root * /opt/finance/project/public
 	request_body {
 		max_size 8MiB
 	}

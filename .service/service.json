@@ -4,13 +4,13 @@
     "resources": {
         "at_init": {
             "mem_limit": 1610612736,
-            "disk_space": 5368709120,
+            "disk_space": 6442450944,
             "cpu_period": 100000,
             "cpu_quota": 100000
         },
         "at_most": {
             "mem_limit": 1610612736,
-            "disk_space": 5368709120,
+            "disk_space": 6442450944,
             "cpu_period": 100000,
             "cpu_quota": 100000
         }
@@ -22,6 +22,9 @@
             "start.sh"
         ]
     },
+    "shared_filesystems": [
+        {"path": "/opt/finance/project", "role": "shared", "tag": "project", "access": "rw"}
+    ],
     "api": [
         {
             "port": 8080,
@@ -66,6 +69,11 @@
                     "prose": "Interfaz cards de celaut-project/chatui (cards.md): gastos pendientes de revisar como mazo de tarjetas (revisado a la derecha, luego a la izquierda, o corregir con el agente)."
                 }
             ]
+        },
+        {
+            "port": 2222,
+            "transport": "tcp",
+            "protocol_stack": [["ssh"]]
         }
     ],
     "uses_gateway": true,
