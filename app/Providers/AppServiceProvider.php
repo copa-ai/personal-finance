@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Expense;
 use App\Models\ExpenseItem;
-use App\Observers\ExpenseObserver;
 use App\Observers\ExpenseItemObserver;
+use App\Observers\ExpenseObserver;
+use App\Services\Coder\Coder;
+use App\Services\Coder\Saldo;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Facades\FilamentTimezone;
@@ -18,7 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(Coder::class, fn (): Coder => Coder::desdeConfig());
+        $this->app->bind(Saldo::class, fn (): Saldo => Saldo::desdeConfig($this->app->make(Coder::class)));
     }
 
     /**

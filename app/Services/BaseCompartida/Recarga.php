@@ -5,6 +5,7 @@ namespace App\Services\BaseCompartida;
 use App\Models\Auditoria;
 use App\Services\Celaut\Nodo;
 use App\Services\Celaut\NodoException;
+use App\Services\Coder\Saldo;
 use Throwable;
 
 /**
@@ -44,8 +45,8 @@ class Recarga
     /**
      * @param  list<array<string, mixed>>  $pool  las instancias del pool (Nodo::instancias)
      * @return list<array{lease: int, estado: string, balance_mu: int, objetivo_mu: int, anadido_mu: int, horas_restantes: float}>
-     *                                                                                   estado: ok (cubre el objetivo), parcial (se anadio menos de lo que faltaba),
-     *                                                                                   sin_saldo (no se pudo anadir nada) o suspendida
+     *                                                                                                                             estado: ok (cubre el objetivo), parcial (se anadio menos de lo que faltaba),
+     *                                                                                                                             sin_saldo (no se pudo anadir nada) o suspendida
      *
      * @throws NodoException si el nodo no contesta
      */
@@ -95,6 +96,11 @@ class Recarga
                 }
                 if (($respuesta['success'] ?? false) === true) {
                     $anadido = $cantidad;
+                    // The burn-rate samples of the Coder must not count this deposit as burn.
+                    try {
+                        Saldo::anotarDeposito($cantidad);
+                    } catch (Throwable) {
+                    }
                     $estado = $cantidad >= $faltaTotal ? 'ok' : 'parcial';
 
                     break;
