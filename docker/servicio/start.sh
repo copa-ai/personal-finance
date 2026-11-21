@@ -6,10 +6,14 @@
 # (env -i) al que solo se le pasa lo suyo: el agente nunca ve APP_KEY ni la base.
 #
 #   agente  (usuario agente)  runner de claude -p 0.0.0.0:9000 (el runner no deja elegir interfaz; fuera del VM no se declara)
-#   web     (usuario app)     frankenphp (HTTP)   0.0.0.0:8080  <- unico puerto declarado en service.json -> api
+#   web     (usuario app)     frankenphp (HTTP)   0.0.0.0:8080  <- primer slot de service.json -> api. Corre desde /opt/finance/project
+#                             (directorio compartido con un Coder hijo) dentro de un bucle (bucle.sh): matar el hijo lo relanza.
+#                             Los PID de web, colas y tareas estan en /var/lib/finance/coder/*.pid (los usa el vigilante de recarga)
 #   cola    (usuario app)     tres workers de queue:work: --queue=default (general), --queue=chat (respuestas del chat) y --queue=ocr
-#                             (OCR de tickets: una peticion puede durar 20 minutos y no debe bloquear a las demas)
-#   tareas  (usuario app)     schedule:work (copia diaria de la base, sincronizacion diaria de datos de mercado)
+#                             (OCR de tickets: una peticion puede durar 20 minutos y no debe bloquear a las demas). Cada uno en bucle.sh
+#   tareas  (usuario app)     schedule:work (copia diaria de la base, sincronizacion diaria de datos de mercado), en bucle.sh
+#   recarga (root)            docker/servicio/recarga.sh: recarga la app cuando un Coder hijo cambia el codigo compartido
+#   ssh     (usuario sshproxy) reenvio TCP 0.0.0.0:2222 -> destino de $CODER/destino.json (docker/servicio/ssh-proxy.py). Entorno vacio.
 #   chat    (usuario chat)    traductor gRPC de la interfaz «chat» de chatui (docker/chat/servidor.py, venv /opt/chat-venv) 0.0.0.0:50051
 #                             <- segundo slot de service.json -> api (http2 -> grpc -> chat). No guarda datos: habla por HTTP con la web
 #                             en 127.0.0.1:8001/interno/chat (segundo sitio del Caddyfile, solo loopback y no declarado en service.json, asi
@@ -34,12 +38,18 @@
 set -eu
 
 DATOS=/var/lib/finance
-KIT_ADMIN=/opt/finance/app
+# The whole project is a shared directory (service.json -> shared_filesystems). The app runs from it, so a Coder child can change the code.
+# Laravel is at the root of the project. Start scripts, Caddyfile, bucle.sh and the agent kit stay outside it: they run as root or as other users.
+PROYECTO=/opt/finance/project
+KIT_ADMIN="$PROYECTO"
+CODER="$DATOS/coder"
 PATH_BASE=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-mkdir -p "$DATOS/secretos" "$DATOS/admin" "$DATOS/agente" "$DATOS/publico"
+mkdir -p "$DATOS/secretos" "$DATOS/admin" "$DATOS/agente" "$DATOS/publico" "$CODER"
 chmod 755 "$DATOS" "$DATOS/publico"
-chmod 700 "$DATOS/secretos"
+chmod 711 "$DATOS/secretos"   # others can enter but not list: only the subdirectory for the Coder is theirs (see below)
+# The app user stores the SSH host key of the Coder here. Other files in secretos stay root-only (mode 600).
+mkdir -p "$DATOS/secretos/coder"; chown app:app "$DATOS/secretos/coder"; chmod 700 "$DATOS/secretos/coder"
 
 # --- Log y estado publicos desde el primer segundo: /app.log, /estado.json y la pagina /estado ---
 # Todo lo que escriben start.sh y las piezas (stdout y stderr) va a app.log. Lo sirve la pagina de estado (estado/servidor.py) mientras
@@ -49,6 +59,9 @@ PUBLICO="$DATOS/publico"
 touch "$PUBLICO/app.log"; chmod 644 "$PUBLICO/app.log"
 exec >>"$PUBLICO/app.log" 2>&1
 echo "=== arranque $(date -u +%FT%TZ) ==="
+# The Coder host key is an argument of the celaut process while a launch runs (up to 30 min). Hide the processes of other users from
+# the users agente and chat. The user app can still see them (it runs celaut and the code of the Coder). A failure is a warning.
+mount -o remount,hidepid=2 /proc 2>/dev/null || echo "start.sh: aviso: no se pudo montar /proc con hidepid=2" >&2
 
 FASES=(secretos agente base migraciones usuario web cola chat)
 declare -A F_NOMBRE=([secretos]="Secretos y claves" [agente]="Agente (Claude Code)" [base]="Base de datos PostgreSQL" \
@@ -148,6 +161,22 @@ agente_vigilar() { [ "${F_ESTADO[agente]}" = ok ] || ! agente_sano || fase agent
 
 # --- Aplicacion: carpeta propia del agente (encargos/workspace/base) y datos en $DATOS/admin ---
 A="$DATOS/admin"
+[ -f "$KIT_ADMIN/artisan" ] || { fallar agente "no hay codigo en $KIT_ADMIN (directorio compartido vacio)"; echo "start.sh: falta $KIT_ADMIN/artisan" >&2; parar; exit 1; }
+# The share can be written by the Coder as root: make the tree readable by the app user. The app writes only .coder/authorized_keys
+# inside it (storage and bootstrap caches live in $A, see ENTORNO_BASE). A failure here is a warning: virtiofs may refuse chmod.
+chmod -R a+rX "$PROYECTO" 2>/dev/null || echo "start.sh: aviso: no se pudo hacer legible $PROYECTO" >&2
+# The Coder is root in its VM and can write a setuid file into the share. Clear the bits, and tell if the mount allows them.
+find "$PROYECTO" -xdev -type f -perm /6000 -exec chmod ug-s {} + 2>/dev/null || true
+grep " $PROYECTO " /proc/mounts | grep -q nosuid || echo "start.sh: aviso: $PROYECTO no esta montado con nosuid ($(grep " $PROYECTO " /proc/mounts | cut -d' ' -f4 | head -1))" >&2
+# Folder for the keys of the Coder. The app writes the file authorized_keys here (the panel does it). Nobody else needs to write.
+# The Coder controls this path: refuse a symlink, because chown and chmod would follow it and change a folder outside the share.
+[ ! -L "$PROYECTO/.coder" ] || rm -f "$PROYECTO/.coder"
+mkdir -p "$PROYECTO/.coder" 2>/dev/null && chown -h app:app "$PROYECTO/.coder" && chmod 755 "$PROYECTO/.coder" \
+    || echo "start.sh: aviso: no se pudo preparar $PROYECTO/.coder para el usuario app" >&2
+# Control files shared by the panel (user app) and the reload watcher (root). Old PID files and an old reload lock belong to the previous run.
+rm -f "$CODER"/*.pid "$CODER"/*.pid.tmp "$CODER/lanzando" "$CODER/lanzando.tmp"
+# Group sshproxy can read the directory (destino.json) and cannot write in it: the forwarder user needs no other right.
+chown app:sshproxy "$CODER"; chmod 750 "$CODER"
 mkdir -p "$A/storage/framework/cache" "$A/storage/framework/sessions" "$A/storage/framework/views" "$A/storage/logs" \
          "$A/storage/app/private" "$A/agente" "$A/bootstrap-cache" "$A/celaut"
 chown -R app:app "$A"; chmod 700 "$A"
@@ -224,17 +253,18 @@ kill "$PID_ESTADO" 2>/dev/null || true
 wait "$PID_ESTADO" 2>/dev/null || true
 # Fuera de PIDS: el `wait -n` final solo debe mirar piezas vivas (esperar un PID ya recogido da error).
 NUEVOS=(); for p in "${PIDS[@]}"; do [ "$p" = "$PID_ESTADO" ] || NUEVOS+=("$p"); done; PIDS=("${NUEVOS[@]}")
-lanzar como app "${ENTORNO_APP[@]}" -- frankenphp run --config /opt/finance/Caddyfile --adapter caddyfile
+# Restartable loop (bucle.sh): a kill of frankenphp restarts it. The PID of frankenphp is in $CODER/web.pid.
+lanzar como app "${ENTORNO_APP[@]}" -- /opt/finance/bucle.sh "$CODER/web.pid" frankenphp run --config /opt/finance/Caddyfile --adapter caddyfile
 fase cola "en curso"
-# Cada worker va en un bucle que lo relanza: queue:work sale por si solo al pasar --memory (128 MB por defecto) o --max-jobs, y si saliera
+# Cada worker va en un bucle (bucle.sh) que lo relanza: queue:work sale por si solo al pasar --memory (128 MB por defecto) o --max-jobs, y si saliera
 # directamente caeria todo el servicio (mas abajo, `wait -n`). Asi su memoria queda acotada sin tirar el servicio. `--memory` se comprueba
-# entre trabajos: un trabajo largo no se interrumpe.
-lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan queue:work --queue=default --tries=1 --timeout=900 --sleep=3 --memory=192 --max-jobs=200 || true; sleep 1; done'
+# entre trabajos: un trabajo largo no se interrumpe. El PID del worker esta en $CODER/cola-<cola>.pid (el vigilante de recarga lo mata para recargar).
+lanzar como app "${ENTORNO_APP[@]}" -- /opt/finance/bucle.sh "$CODER/cola-default.pid" php artisan queue:work --queue=default --tries=1 --timeout=900 --sleep=3 --memory=192 --max-jobs=200
 # Worker propio del OCR: ProcessOcrJob (cola «ocr») espera hasta OCR_TIMEOUT (1200 s) + 60 al servicio OCR; --timeout queda por encima de eso y
 # por debajo de DB_QUEUE_RETRY_AFTER. Sin worker propio, un ticket bloquearia el worker general durante minutos.
-lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan queue:work --queue=ocr --tries=1 --timeout=1320 --sleep=3 --memory=192 --max-jobs=50 || true; sleep 1; done'
+lanzar como app "${ENTORNO_APP[@]}" -- /opt/finance/bucle.sh "$CODER/cola-ocr.pid" php artisan queue:work --queue=ocr --tries=1 --timeout=1320 --sleep=3 --memory=192 --max-jobs=50
 # Worker propio del chat: una respuesta larga del agente no debe dejar sin respuesta a las demas piezas.
-lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan queue:work --queue=chat --tries=1 --timeout=0 --sleep=1 --memory=192 --max-jobs=500 || true; sleep 1; done'
+lanzar como app "${ENTORNO_APP[@]}" -- /opt/finance/bucle.sh "$CODER/cola-chat.pid" php artisan queue:work --queue=chat --tries=1 --timeout=0 --sleep=1 --memory=192 --max-jobs=500
 for i in $(seq 1 60); do
     python3 -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8080/estado.json', timeout=2)" 2>/dev/null && break
     sleep 1
@@ -271,8 +301,38 @@ lanzar medir_memoria
 # La primera vuelta es nada mas arrancar (no tras 300 s): asi la primera copia de seguridad de la base se toma en cuanto se conecta con ella.
 lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan finance:vigilar-base "$2" || true; sleep "$1"; done' vigilante 300 "$RUN_DB"
 
-# --- Tareas programadas (routes/console.php): copia diaria de la base y datos de mercado. En bucle por lo mismo que los workers. ---
-lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan schedule:work --no-interaction || true; sleep 5; done'
+# --- Tareas programadas (routes/console.php): copia diaria de la base y datos de mercado. En bucle.sh por lo mismo que los workers.
+#     Su PID esta en $CODER/tareas.pid: el vigilante de recarga lo mata para que el planificador cargue el codigo nuevo. ---
+lanzar como app "${ENTORNO_APP[@]}" -- /opt/finance/bucle.sh "$CODER/tareas.pid" php artisan schedule:work --no-interaction
+
+# --- Reload watcher (recarga.sh): reloads the app when a Coder child changes the shared code. Runs as root: it restarts the web, queue and
+#     scheduler loops with a kill, but it runs php, artisan and php -l as the app user with an empty environment. Files: see the header of recarga.sh.
+#     A crash of the watcher must not stop the service, so a small loop restarts it. TERM stops the watcher too. ---
+RECARGA_NOMBRES=""
+for v in "${ENTORNO_APP[@]}"; do RECARGA_NOMBRES+="${v%%=*} "; done
+lanzar env "${ENTORNO_APP[@]}" RECARGA_NOMBRES="$RECARGA_NOMBRES" bash -c \
+    'trap "kill \$h 2>/dev/null; exit 0" TERM INT; while true; do /opt/finance/recarga.sh & h=$!; wait $h; sleep 5; done'
+
+# --- SSH forwarder (ssh-proxy.py): slot 2222 of service.json. User sshproxy, empty environment. It reads the target from
+#     $CODER/destino.json (written by the app user, mode 644, in a directory that only app can write) and pipes bytes. It never parses SSH.
+#     A crash must not stop the service, so a small loop restarts it. TERM stops it. ---
+ssh_proxy_bucle() {
+    local h=""
+    trap 'kill $h 2>/dev/null; exit 0' TERM INT
+    while true; do
+        ( como sshproxy SSH_PROXY_PORT=2222 SSH_PROXY_DESTINO="$CODER/destino.json" -- python3 /opt/finance/ssh-proxy.py ) & h=$!
+        wait $h || true
+        sleep 3
+    done
+}
+lanzar ssh_proxy_bucle
+
+# --- Coder watcher: every 60 s, checks that the Coder child is still in the node pool and removes its SSH target if it died ---
+lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan finance:vigilar-coder || true; sleep "$1"; done' vigilante-coder 60
+
+# --- Coder funding: every 300 s, samples the balance of finance and tops the Coder up when the three controls pass ---
+# A failure goes to the log and never stops the service (the command exits 0 and the loop ignores its status).
+lanzar como app "${ENTORNO_APP[@]}" -- sh -c 'while true; do php artisan finance:vigilar-coder --saldo || true; sleep "$1"; done' vigilante-saldo 300
 
 # --- Chat: traductor gRPC (usuario chat, entorno vacio). Necesita la web (127.0.0.1:8001, Caddyfile) y su base, ya arriba ---
 fase chat "en curso" "arrancando el traductor en :50051"

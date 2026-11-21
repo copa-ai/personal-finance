@@ -1,0 +1,296 @@
+#!/bin/bash
+# Local test of docker/servicio/recarga.sh. It needs no PHP and no root.
+# It uses a temporary directory, a fake php and web processes made by bucle.sh.
+#   docker/pruebas/test-recarga.sh
+set -u
+AQUI=$(cd "$(dirname "$0")" && pwd)
+SERVICIO="$AQUI/../servicio"
+T=$(mktemp -d)
+FALLOS=0
+cleanup() { pkill -P $$ 2>/dev/null; kill "${BUCLES[@]}" 2>/dev/null; rm -rf "$T"; }
+BUCLES=()
+trap cleanup EXIT
+
+export RECARGA_PROYECTO="$T/project" RECARGA_CODER="$T/coder" RECARGA_PRIVADO="$T/privado" RECARGA_ORIGINAL="$T/orig.tar.gz"
+export RECARGA_COMO="" RECARGA_HOME="$T" RECARGA_DEBOUNCE=0 RECARGA_PERIODO=0 RECARGA_ESPERA_WEB=10 RECARGA_INTENTOS_SALUD=3
+export RECARGA_UID=$(id -u) RECARGA_PATRON_WEB=sleep RECARGA_PATRON_COLA=sleep RECARGA_PATRON_TAREAS=sleep
+export RECARGA_PATH="$T/bin:/usr/bin:/bin" RECARGA_SALUD="$T/bin/salud"
+P=$RECARGA_PROYECTO; C=$RECARGA_CODER
+
+mkdir -p "$T/bin" "$P/app" "$P/config" "$P/routes" "$P/resources" "$P/database" "$P/bootstrap" "$P/lang/es" \
+    "$P/vendor/x" "$P/.coder" "$C"
+echo '<?php // original' > "$P/app/A.php"
+echo '<?php return [];' > "$P/config/app.php"
+echo '<?php // app' > "$P/bootstrap/app.php"
+echo '<?php return [];' > "$P/bootstrap/providers.php"
+echo '<?php return [];' > "$P/lang/es/x.php"
+echo '{}' > "$P/composer.lock"
+echo 'v1' > "$P/vendor/x/lib.php"
+echo 'key' > "$P/.coder/authorized_keys"
+echo x > "$P/artisan"
+tar -C "$P" -czf "$T/orig.tar.gz" .
+
+# Fake php. Fails on -l when the file has SYNTAXERROR. Fails on route:list when any app file has BOOTERROR.
+cat > "$T/bin/php" <<'PHP'
+#!/bin/bash
+echo "$*" >> "@T@/calls.log"
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+    [ "${args[$i]}" != "-l" ] || { grep -q SYNTAXERROR "${args[$((i+1))]}" && { echo "Parse error in ${args[$((i+1))]}"; exit 255; }; exit 0; }
+done
+case "$*" in
+    *route:list*) grep -rq BOOTERROR "@P@/app" && { echo "boot failed"; exit 1; }; echo '[]' ;;
+esac
+exit 0
+PHP
+# Fake health check. Fails when the file $T/salud-mal exists and app/A.php has HEALTHFAIL.
+cat > "$T/bin/salud" <<EOF2
+#!/bin/bash
+grep -q HEALTHFAIL "$P/app/A.php" && exit 1
+exit 0
+EOF2
+sed -i "s#@T@#$T#; s#@P@#$P#" "$T/bin/php"
+chmod +x "$T/bin/php" "$T/bin/salud"
+
+for n in web cola-default cola-ocr cola-chat tareas; do
+    "$SERVICIO/bucle.sh" "$C/$n.pid" sleep 600 &
+    BUCLES+=($!)
+done
+sleep 1
+
+# shellcheck source=../servicio/recarga.sh
+source "$SERVICIO/recarga.sh"
+
+ok() { echo "ok   - $1"; }
+mal() { echo "FAIL - $1"; FALLOS=$((FALLOS + 1)); }
+verificar() { if eval "$2"; then ok "$1"; else mal "$1 ($2)"; fi; }
+json() { python3 -c "import json,sys; print(json.load(open('$C/recarga.json')).get(sys.argv[1]))" "$1"; }
+cambia() { sleep 0.05; printf '%s\n' "$2" >> "$1"; touch "$1"; }
+
+preparar > /dev/null
+verificar "status is valid JSON at start" "json estado >/dev/null"
+verificar "start state is vigilando and equal to original" "[ \"\$(json estado)\" = vigilando ] && [ \"\$(json igual_original)\" = True ] && [ \"\$(json cambios)\" = 0 ]"
+verificar "first snapshot exists" "[ -s '$T/privado/ultima-buena.tar.gz' ]"
+verificar "snapshot has no vendor" "! tar -tzf '$T/privado/ultima-buena.tar.gz' | grep -q vendor"
+
+# 1. No change: nothing happens.
+PID_WEB=$(cat "$C/web.pid")
+una_vuelta > /dev/null
+verificar "status has espera_lanzamiento false" "[ \"\$(json espera_lanzamiento)\" = False ]"
+verificar "no change, no restart" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ]"
+
+# 2. Good change: reload.
+PID_OCR=$(cat "$C/cola-ocr.pid"); PID_TAREAS=$(cat "$C/tareas.pid"); PID_DEF=$(cat "$C/cola-default.pid"); PID_CHAT=$(cat "$C/cola-chat.pid")
+cambia "$P/app/A.php" '// edit 1'
+una_vuelta > /dev/null
+verificar "good change reloads web" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+sleep 2
+verificar "reload restarts the three queues and the scheduler" "[ \"\$(cat $C/cola-ocr.pid)\" != $PID_OCR ] && [ \"\$(cat $C/tareas.pid)\" != $PID_TAREAS ] && [ \"\$(cat $C/cola-default.pid)\" != $PID_DEF ] && [ \"\$(cat $C/cola-chat.pid)\" != $PID_CHAT ]"
+verificar "result ok" "[ \"\$(json resultado)\" = ok ] && [ \"\$(json recargas)\" = 1 ]"
+verificar "optimize:clear ran" "grep -q optimize:clear '$T/calls.log'"
+verificar "tree differs from original" "[ \"\$(json igual_original)\" = False ] && [ \"\$(json cambios)\" = 1 ]"
+PID_WEB=$(cat "$C/web.pid")
+una_vuelta > /dev/null
+verificar "no second reload for the same change" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ]"
+
+# 3. Syntax error: no reload.
+cambia "$P/app/A.php" '// SYNTAXERROR'
+una_vuelta > /dev/null
+verificar "syntax error does not reload" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json resultado)\" = error_sintaxis ] && [ \"\$(json estado)\" = error ]"
+una_vuelta > /dev/null
+verificar "syntax error is not retried without a new change" "[ \"\$(json resultado)\" = error_sintaxis ]"
+
+# 4. Boot error: no reload.
+sed -i '/SYNTAXERROR/d' "$P/app/A.php"; cambia "$P/app/A.php" '// BOOTERROR'
+una_vuelta > /dev/null
+verificar "boot error does not reload" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json resultado)\" = error_arranque ]"
+
+# 5. Health failure: rollback to the last good snapshot.
+sed -i '/BOOTERROR/d' "$P/app/A.php"; cambia "$P/app/A.php" '// HEALTHFAIL'
+una_vuelta > /dev/null 2>&1
+verificar "health failure restores last good code" "! grep -q HEALTHFAIL '$P/app/A.php' && grep -q 'edit 1' '$P/app/A.php'"
+verificar "result revertido" "[ \"\$(json resultado)\" = revertido ] && [ \"\$(json estado)\" = vigilando ]"
+
+# 6. Auto reload OFF: changes wait for the flag.
+echo off > "$C/auto-recarga"
+PID_WEB=$(cat "$C/web.pid")
+cambia "$P/app/A.php" '// edit 2'
+una_vuelta > /dev/null
+verificar "auto off: no reload, state pendiente" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json estado)\" = pendiente ] && [ \"\$(json pendiente)\" = True ] && [ \"\$(json auto)\" = False ]"
+touch "$C/recargar-ahora"
+una_vuelta > /dev/null
+verificar "reload-now flag reloads and is removed" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ] && [ ! -e $C/recargar-ahora ] && [ \"\$(json pendiente)\" = False ]"
+rm -f "$C/auto-recarga"
+
+# 6b. Auto OFF with a pending change: the watcher does not redo the change branch on each pass.
+echo off > "$C/auto-recarga"
+cambia "$P/app/A.php" '// edit 2b'
+una_vuelta > /dev/null
+N1=$(huella_actual); LOG1=$(una_vuelta 2>&1; una_vuelta 2>&1; una_vuelta 2>&1)
+verificar "auto off: later passes log nothing and stay pendiente" "[ -z \"\$LOG1\" ] && [ \"\$(json estado)\" = pendiente ]"
+touch "$C/recargar-ahora"; una_vuelta > /dev/null
+rm -f "$C/auto-recarga"
+
+# 6c. providers.php and lang are watched.
+PID_WEB=$(cat "$C/web.pid")
+cambia "$P/bootstrap/providers.php" '// provider'
+una_vuelta > /dev/null
+verificar "change in bootstrap/providers.php reloads" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+PID_WEB=$(cat "$C/web.pid")
+cambia "$P/lang/es/x.php" '// lang'
+una_vuelta > /dev/null
+verificar "change in lang reloads" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+
+# 6d. A forged PID file is not killed (the process is not the app web process).
+PID_WEB=$(cat "$C/web.pid")
+tail -f /dev/null & AJENO=$!
+pid_valido "$AJENO" frankenphp && mal "pid_valido accepts a wrong command line" || ok "pid_valido rejects a wrong command line"
+APP_UID_ANTES=$APP_UID; APP_UID=$(( $(id -u) + 1 ))   # an owner that is not the owner of the test process (also true when the test runs as root)
+pid_valido "$PID_WEB" sleep && mal "pid_valido accepts a wrong owner" || ok "pid_valido rejects a wrong owner"
+APP_UID=$APP_UID_ANTES
+echo "$AJENO" > "$C/web.pid"
+cambia "$P/app/A.php" '// forged pid'
+una_vuelta > /dev/null 2>&1
+verificar "forged pid file: the foreign process stays alive" "kill -0 $AJENO"
+verificar "forged pid file: the reload fails and is reported" "[ \"\$(json resultado)\" != ok ]"
+kill "$AJENO" 2>/dev/null
+echo "$PID_WEB" > "$C/web.pid"
+
+# 6e. json_texto strips control characters.
+printf '%s' "$(json_texto $'app/a\x01\x7f\xff.php: "x" \\')" | python3 -c "import sys,json; json.loads('\"'+sys.stdin.read()+'\"')" 2>/dev/null \
+    && ok "json_texto output is a valid JSON string" || mal "json_texto output is a valid JSON string"
+
+# 7. Restore original: files return, extra files go, .coder and vendor are right.
+cambia "$P/app/A.php" '// edit 3'
+echo '<?php // extra' > "$P/app/Extra.php"
+echo junk > "$P/vendor/x/extra.php"
+echo junk > "$P/vendor/x/lib.php"
+echo 'newkey' > "$P/.coder/authorized_keys"
+touch "$C/restaurar-original"
+una_vuelta > /dev/null
+verificar "restore: file content back" "cmp -s '$P/app/A.php' <(echo '<?php // original')"
+verificar "restore: extra app file removed" "[ ! -e '$P/app/Extra.php' ]"
+verificar "restore: vendor fixed" "[ ! -e '$P/vendor/x/extra.php' ] && [ \"\$(cat $P/vendor/x/lib.php)\" = v1 ]"
+verificar "restore: .coder kept" "[ \"\$(cat $P/.coder/authorized_keys)\" = newkey ]"
+verificar "restore: result and equal to original" "[ \"\$(json resultado)\" = restaurado_original ] && [ \"\$(json igual_original)\" = True ] && [ \"\$(json cambios)\" = 0 ] && [ ! -e $C/restaurar-original ]"
+
+# 8. A symlink in place of a watched path or of its parent: the rollback does not write through it.
+mkdir -p "$T/fuera"
+rm -rf "$P/app"; ln -s "$T/fuera" "$P/app"
+extraer_y_podar "$T/privado/ultima-buena.tar.gz" "${VIGILADOS[@]}"
+verificar "symlinked watched path: nothing written outside" "[ -z \"\$(ls -A $T/fuera)\" ] && [ -d $P/app ] && [ ! -L $P/app ]"
+mv "$P/bootstrap" "$T/bootstrap.real"; ln -s "$T/bootstrap.real" "$P/bootstrap"
+extraer_y_podar "$T/privado/ultima-buena.tar.gz" "${VIGILADOS[@]}"
+verificar "symlinked parent (bootstrap): replaced by a real directory" "[ -d $P/bootstrap ] && [ ! -L $P/bootstrap ]"
+
+# 9. Setuid bits are cleared and unreadable files become readable.
+echo x > "$P/app/Suid.php"; chmod 4755 "$P/app/Suid.php"
+echo y > "$P/app/Priv.php"; chmod 600 "$P/app/Priv.php"
+sanear_modos
+verificar "sanear_modos clears setuid and opens mode 600" "[ ! -u $P/app/Suid.php ] && [ -r $P/app/Priv.php ] && [ \"\$(stat -c %a $P/app/Priv.php)\" = 644 ]"
+
+# 9b. A snapshot is not saved when a watched path holds a symlink.
+cp "$T/privado/ultima-buena.tar.gz" "$T/antes.tar.gz"
+ln -s "$T/fuera" "$P/app/enlace"
+marca=$(mktemp "$T/privado/marca.XXXXXX")
+guardar_copia "$marca" > /dev/null 2>&1; rc=$?
+rm -f "$P/app/enlace" "$marca"
+verificar "snapshot with a symlink: refused, old snapshot kept" "[ $rc -ne 0 ] && cmp -s '$T/privado/ultima-buena.tar.gz' '$T/antes.tar.gz'"
+
+# 9c. A new mount can make the root of the share mode 700: the watcher opens it again, once in the log.
+chmod 700 "$P"
+SALIDA=$(asegurar_acceso 2>&1; asegurar_acceso 2>&1)
+verificar "share root mode 700: opened for others" "[ \$(( 8#\$(stat -c %a $P) & 5 )) -eq 5 ]"
+verificar "share root mode 700: one log line only" "[ \$(printf '%s\n' \"\$SALIDA\" | grep -c 'no puede leer') -eq 1 ]"
+chmod 700 "$P/app"; chmod 600 "$P/app/A.php"
+asegurar_acceso > /dev/null 2>&1; chmod 700 "$P" ; asegurar_acceso > /dev/null 2>&1
+verificar "tree opened again (dir and file)" "[ -r $P/app/A.php ] && [ \$(( \$(stat -c %a $P/app/A.php) % 100 )) -ge 44 ]"
+
+# 11. Reload lock: no reload while $C/lanzando is fresh. The change stays pending. One log line for each wait.
+ahora() { date +%s; }
+escribir_lock() { echo "$1" > "$C/lanzando"; }
+PID_WEB=$(cat "$C/web.pid")
+escribir_lock "$(ahora)"
+cambia "$P/app/A.php" '// lock 1'
+LOG=$(una_vuelta 2>&1; una_vuelta 2>&1; una_vuelta 2>&1)
+verificar "lock fresh: no reload (automatic)" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json pendiente)\" = True ]"
+verificar "lock fresh: field espera_lanzamiento is true" "[ \"\$(json espera_lanzamiento)\" = True ]"
+verificar "lock fresh: one log line over three passes" "[ \$(printf '%s\n' \"\$LOG\" | grep -c 'la recarga espera') -eq 1 ]"
+rm -f "$C/lanzando"
+una_vuelta > /dev/null 2>&1
+verificar "lock removed: the pending change reloads" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ] && [ \"\$(json resultado)\" = ok ] && [ \"\$(json pendiente)\" = False ]"
+verificar "lock removed: field espera_lanzamiento is false" "[ \"\$(json espera_lanzamiento)\" = False ]"
+
+# 11b. An old lock (over the limit) does not hold the reload. A future time counts as old. A wrong content uses the mtime.
+PID_WEB=$(cat "$C/web.pid")
+escribir_lock "$(( $(ahora) - 3000 ))"
+cambia "$P/app/A.php" '// lock 2'
+una_vuelta > /dev/null 2>&1
+verificar "lock older than 2400 s: reload runs" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ] && [ \"\$(json espera_lanzamiento)\" = False ]"
+PID_WEB=$(cat "$C/web.pid")
+escribir_lock "$(( $(ahora) + 99999 ))"; touch -d '1 hour ago' "$C/lanzando"
+cambia "$P/app/A.php" '// lock 3'
+una_vuelta > /dev/null 2>&1
+verificar "lock with a future time does not block: reload runs" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+PID_WEB=$(cat "$C/web.pid")
+escribir_lock "garbage"
+cambia "$P/app/A.php" '// lock 4'
+una_vuelta > /dev/null 2>&1
+verificar "lock with no number does not block: reload runs" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+rm -f "$C/lanzando"
+# A symlink named lanzando is not a lock.
+PID_WEB=$(cat "$C/web.pid")
+echo "$(ahora)" > "$T/otro"; ln -s "$T/otro" "$C/lanzando"
+cambia "$P/app/A.php" '// lock 5'
+una_vuelta > /dev/null 2>&1
+verificar "lanzando as a symlink is ignored" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ]"
+rm -f "$C/lanzando"
+
+# 11c. The flag recargar-ahora and the restore flag wait too, and stay in place.
+PID_WEB=$(cat "$C/web.pid")
+escribir_lock "$(ahora)"
+touch "$C/recargar-ahora"
+cambia "$P/app/A.php" '// lock 6'
+echo off > "$C/auto-recarga"
+una_vuelta > /dev/null 2>&1
+verificar "lock fresh: the flag recargar-ahora waits and stays" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ -e $C/recargar-ahora ] && [ \"\$(json espera_lanzamiento)\" = True ]"
+rm -f "$C/lanzando"
+una_vuelta > /dev/null 2>&1
+verificar "lock removed: the flag recargar-ahora reloads" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ] && [ ! -e $C/recargar-ahora ] && [ \"\$(json espera_lanzamiento)\" = False ]"
+rm -f "$C/auto-recarga"
+escribir_lock "$(ahora)"
+touch "$C/restaurar-original"
+PID_WEB=$(cat "$C/web.pid")
+una_vuelta > /dev/null 2>&1
+verificar "lock fresh: the restore waits and stays" "[ -e $C/restaurar-original ] && [ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json espera_lanzamiento)\" = True ]"
+rm -f "$C/lanzando"
+una_vuelta > /dev/null 2>&1
+verificar "lock removed: the restore runs" "[ ! -e $C/restaurar-original ] && [ \"\$(json resultado)\" = restaurado_original ] && [ \"\$(json espera_lanzamiento)\" = False ]"
+
+# 11d. A launch that starts during the checks defers the reload (the launch is not killed).
+PID_WEB=$(cat "$C/web.pid")
+cambia "$P/app/A.php" '// lock 7'
+verificar_original=$(declare -f verificar_codigo)
+verificar_codigo() { escribir_lock "$(ahora)"; return 0; }
+una_vuelta > /dev/null 2>&1
+eval "$verificar_original"
+verificar "launch starts during the checks: no restart, pending kept" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json pendiente)\" = True ] && [ \"\$(json espera_lanzamiento)\" = True ]"
+rm -f "$C/lanzando"
+una_vuelta > /dev/null 2>&1
+verificar "after that launch ends: the reload runs" "[ \"\$(cat $C/web.pid)\" != $PID_WEB ] && [ \"\$(json pendiente)\" = False ]"
+
+# 12. APP_SUBDIR: the watched paths take the prefix.
+SUB=$(RECARGA_SUBDIR=admin bash -c 'source "$1"; echo "$ADMIN ${VIGILADOS[0]} ${PODAR_ORIGINAL[-1]}"' _ "$SERVICIO/recarga.sh")
+verificar "APP_SUBDIR=admin prefixes the paths" "[ \"\$SUB\" = \"$P/admin admin/app admin/vendor\" ]"
+verificar "empty APP_SUBDIR: no prefix" "[ \"\$ADMIN\" = \"$P\" ] && [ \"\${VIGILADOS[0]}\" = app ]"
+
+# 10. A size over the cap refuses the reload.
+RECARGA_MAX_BYTES=10 MAX_BYTES=10
+cambia "$P/app/A.php" '// big'
+PID_WEB=$(cat "$C/web.pid")
+una_vuelta > /dev/null 2>&1
+verificar "size over the cap: no reload and an error" "[ \"\$(cat $C/web.pid)\" = $PID_WEB ] && [ \"\$(json resultado)\" = error_arranque ]"
+MAX_BYTES=209715200
+
+echo
+if [ "$FALLOS" -eq 0 ]; then echo "All tests passed."; else echo "$FALLOS test(s) failed."; exit 1; fi
