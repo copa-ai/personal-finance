@@ -35,8 +35,7 @@
         ".service/.dockerignore"
     ],
     "ignore": [
-        "/vendor/",
-        "/node_modules/",
+        "node_modules/",
         "__pycache__/",
         "*.pyc",
         "*.sqlite*",
