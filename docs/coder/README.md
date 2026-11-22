@@ -230,6 +230,16 @@ It sends only the amount that the three controls allow.
 - The reload does not check the logic of the code. It checks syntax and boot only.
 - A reload does not stop the app from other changes: a bad change to a Filament page can break the panel. The rollback restores the last good snapshot.
 
+## Balance use
+
+Measured on a node during the tests of v0.3.0. The values are approximate.
+
+- The finance service uses about 200 000 MU each minute.
+- A small Coder uses about 65 000 MU each minute.
+- An instance with no balance stops. The node cannot start it again (error `no launch spec`). Launch the instance again.
+
+Use these values to set the three limits (cap, percentage, minimum hours). The rate that the panel shows comes from real samples (decisions 46 and 48).
+
 ## What is lost when finance stops
 
 The share is not durable. The node owns it through the finance instance.
