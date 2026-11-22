@@ -61,7 +61,7 @@ Effect: The maintenance price rises a little, because the price follows resource
 Context: A node must hold room for a Coder child. The agreed bound is 3 GiB memory, 10 GiB disk and 2 CPU.
 Decision: The bound is in config coder.recursos. The panel shows it as "up to" at the confirm step. The nutrition service.json declares it with possible_environment_workload (one clause, one workload, only at_most), separate from the postgres clause in initial_environment_workload. When this log was written, the finance service.json did not hold that clause yet.
 Reason: The check is an admission check at launch of finance. It has no cost and no reservation.
-Effect: Without the clause, the node does not check the bound. The panel text is then information only. Add the clause, or accept the difference. I did not verify on a node that the bound limits which hash the panel launches later.
+Effect: Without the clause, the node does not check the bound. The panel text is then information only. Do not add the clause: in personal-nutrition the clause was in service.json while a cold launch of a Coder never ended, and the same launch ended in seconds without it (nutrition decisions, entry 91). Finance has no clause and its cold launch ended in 78 seconds.
 
 ## 9. SSH slot position
 Context: The SSH slot is the fourth api slot, port 2222, tcp, protocol_stack [["ssh"]].
